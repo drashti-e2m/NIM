@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Filter icon style inspired by joalfa (Flaticon).
+  Attribution: Filter icons created by joalfa - Flaticon
+  https://www.flaticon.com/free-icons/filter
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+  <path
+    d="M4 5.5h16l-5.8 6.7c-.3.35-.45.55-.45.9v4.4L10.25 19V13.1c0-.35-.15-.55-.45-.9L4 5.5Z"
+    stroke="currentColor"
+    stroke-width="1.7"
+    stroke-linejoin="round"
+    stroke-linecap="round"
+  />
+</svg>

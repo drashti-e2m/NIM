@@ -1,0 +1,9 @@
+.tools
+node_modules
+dist
+.DS_Store
+*.local
+.env
+.env.*
+!.env.example
+.nim-shared-store.json
