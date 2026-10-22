@@ -199,14 +199,19 @@ export const ArticleDraftView = forwardRef<ArticleDraftHandle, Props>(
   ref,
 ) {
   const editorRef = useRef<HTMLDivElement>(null);
+  const blogRef = useRef<HTMLElement>(null);
   const titleRef = useRef<HTMLDivElement>(null);
   const titleFocusedRef = useRef(false);
   const savedRangeRef = useRef<Range | null>(null);
   const syncingRef = useRef(false);
   const seededRef = useRef(false);
   const debounceRef = useRef<number | null>(null);
+  const popupTimerRef = useRef<number | null>(null);
 
   const [pointedSuggestionId, setPointedSuggestionId] = useState<string | null>(
+    null,
+  );
+  const [popupPos, setPopupPos] = useState<{ top: number; left: number } | null>(
     null,
   );
   const [dismissed, setDismissed] = useState<string[]>([]);
@@ -292,6 +297,12 @@ export const ArticleDraftView = forwardRef<ArticleDraftHandle, Props>(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [contentKey]);
 
+  useEffect(() => {
+    return () => {
+      if (popupTimerRef.current) window.clearTimeout(popupTimerRef.current);
+    };
+  }, []);
+
   function sectionIdForSuggestion(suggestionId: string): string {
     const indexById: Record<string, number> = {
       s1: 0,
@@ -306,16 +317,59 @@ export const ArticleDraftView = forwardRef<ArticleDraftHandle, Props>(
     return ordered[Math.min(index, Math.max(0, ordered.length - 1))]?.id ?? "";
   }
 
+  function clearSuggestionTargetHighlight() {
+    editorRef.current
+      ?.querySelectorAll(".draft-doc-section.is-suggestion-target")
+      .forEach((node) => node.classList.remove("is-suggestion-target"));
+  }
+
+  function clearSuggestionPopup() {
+    if (popupTimerRef.current) {
+      window.clearTimeout(popupTimerRef.current);
+      popupTimerRef.current = null;
+    }
+    clearSuggestionTargetHighlight();
+    setPointedSuggestionId(null);
+    setPopupPos(null);
+  }
+
+  function placeSuggestionPopup(sectionId: string) {
+    const section = document.getElementById(`draft-sec-${sectionId}`);
+    const blog = blogRef.current;
+    if (!section || !blog) return;
+
+    clearSuggestionTargetHighlight();
+    section.classList.add("is-suggestion-target");
+
+    const blogRect = blog.getBoundingClientRect();
+    const secRect = section.getBoundingClientRect();
+    const top = Math.max(8, secRect.top - blogRect.top + 8);
+    const left = Math.max(
+      16,
+      Math.min(secRect.left - blogRect.left + 20, blog.clientWidth - 336),
+    );
+    setPopupPos({ top, left });
+  }
+
   function viewSuggestion(suggestionId: string) {
     const sectionId = sectionIdForSuggestion(suggestionId);
-    setPointedSuggestionId(suggestionId);
-    if (sectionId) {
-      requestAnimationFrame(() => {
-        document
-          .getElementById(`draft-sec-${sectionId}`)
-          ?.scrollIntoView({ behavior: "smooth", block: "center" });
-      });
+    if (pointedSuggestionId === suggestionId) {
+      clearSuggestionPopup();
+      return;
     }
+    setPointedSuggestionId(suggestionId);
+    setPopupPos(null);
+    if (!sectionId) return;
+
+    requestAnimationFrame(() => {
+      const section = document.getElementById(`draft-sec-${sectionId}`);
+      section?.scrollIntoView({ behavior: "smooth", block: "center" });
+      if (popupTimerRef.current) window.clearTimeout(popupTimerRef.current);
+      popupTimerRef.current = window.setTimeout(() => {
+        placeSuggestionPopup(sectionId);
+        popupTimerRef.current = null;
+      }, 320);
+    });
   }
 
   function saveSelection() {
@@ -486,13 +540,13 @@ export const ArticleDraftView = forwardRef<ArticleDraftHandle, Props>(
   function acceptSuggestion() {
     if (!pointedSuggestion) return;
     setDismissed((current) => [...current, pointedSuggestion.id]);
-    setPointedSuggestionId(null);
+    clearSuggestionPopup();
   }
 
   function rejectSuggestion() {
     if (!pointedSuggestion) return;
     setDismissed((current) => [...current, pointedSuggestion.id]);
-    setPointedSuggestionId(null);
+    clearSuggestionPopup();
   }
 
   const authority = suggestions.filter((s) => s.kind === "authority").length;
@@ -583,7 +637,11 @@ export const ArticleDraftView = forwardRef<ArticleDraftHandle, Props>(
             <ToolButton title="Bold" onClick={() => run("bold")}><strong>B</strong></ToolButton>
             <ToolButton title="Italic" onClick={() => run("italic")}><em>I</em></ToolButton>
             <ToolButton title="Underline" onClick={() => run("underline")}><u>U</u></ToolButton>
-            <ToolButton title="Strikethrough" onClick={() => run("strikeThrough")}>S̶</ToolButton>
+            <ToolButton title="Strikethrough" onClick={() => run("strikeThrough")}>
+              <span className="gdocs-strike-icon" aria-hidden>
+                S
+              </span>
+            </ToolButton>
             <label className="draft-toolbar-color" title="Text color">
               <span style={{ borderBottomColor: foreColor }}>A</span>
               <input
@@ -612,7 +670,7 @@ export const ArticleDraftView = forwardRef<ArticleDraftHandle, Props>(
             <ToolButton title="Align right" onClick={() => run("justifyRight")}>☰</ToolButton>
             <ToolButton title="Bulleted list" onClick={() => run("insertUnorderedList")}>•</ToolButton>
             <ToolButton title="Numbered list" onClick={() => run("insertOrderedList")}>1.</ToolButton>
-            <ToolButton title="Link" onClick={insertLink}>🔗</ToolButton>
+            <ToolButton title="Link" onClick={insertLink}>↗</ToolButton>
             <ToolButton title="Clear formatting" onClick={clearFormatting}>Tx</ToolButton>
           </div>
           <select
@@ -632,7 +690,7 @@ export const ArticleDraftView = forwardRef<ArticleDraftHandle, Props>(
         </div>
 
         <div className="draft-canvas">
-          <article className="draft-blog">
+          <article className="draft-blog" ref={blogRef}>
             <header className="draft-blog-head">
               <div
                 ref={titleRef}
@@ -697,8 +755,13 @@ export const ArticleDraftView = forwardRef<ArticleDraftHandle, Props>(
               }}
             />
 
-            {pointedSuggestion ? (
-              <div className="draft-inline-card draft-inline-card-floating" role="dialog">
+            {pointedSuggestion && popupPos ? (
+              <div
+                className="draft-inline-card draft-inline-card-floating"
+                role="dialog"
+                aria-label={pointedSuggestion.label}
+                style={{ top: popupPos.top, left: popupPos.left }}
+              >
                 <strong>{pointedSuggestion.label}</strong>
                 <p>{pointedSuggestion.detail}</p>
                 <div className="draft-inline-actions">

@@ -102,7 +102,7 @@ export function CalendarPage() {
       setNotice(`Moved pin to ${dateKey}.`);
       return;
     }
-    // No pin selected — add a new client pin on that day
+    // No pin selected - add a new client pin on that day
     const clientId = newClientId || (clientFilter !== "all" ? clientFilter : "");
     if (!clientId) {
       setNotice("Search and pick a client first, then click a day.");
@@ -135,7 +135,7 @@ export function CalendarPage() {
       primaryKeyword: "content calendar",
       secondaryKeywords: [client.name.toLowerCase()],
       research: "",
-      outline: `Outline — ${pinTitle}`,
+      outline: `Outline - ${pinTitle}`,
       approvedOutline: null,
       sections: [],
       lede: "",
@@ -503,7 +503,7 @@ export function CalendarPage() {
                 <input
                   value={newTitle}
                   onChange={(event) => setNewTitle(event.target.value)}
-                  placeholder="Optional — defaults to client + date"
+                  placeholder="Optional - defaults to client + date"
                 />
               </label>
 

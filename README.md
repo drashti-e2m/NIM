@@ -1,6 +1,6 @@
 # NIM Studio
 
-Agency content workspace for **New Initiatives Marketing (NIM)** — client hubs, blog generation, review/SEO/repurpose, calendar & deadlines, saved drafts, and Slack messaging.
+Agency content workspace for **New Initiatives Marketing (NIM)** - client hubs, blog generation, review/SEO/repurpose, calendar & deadlines, saved drafts, and Slack messaging.
 
 **Page-by-page features:** see [`docs/mvp-feature-overview.md`](docs/mvp-feature-overview.md) for a holistic MVP overview.
 
@@ -175,9 +175,9 @@ On Review → **Repurpose** tab: turn a blog into FAQs, LinkedIn promo copy, and
 ## Brand tokens
 
 ```css
---brand-primary:   #555672;  /* slate — structure, CTAs */
---brand-secondary: #f27028;  /* orange — sparse accents */
---brand-accent:    #f5bb48;  /* gold — soft highlights */
+--brand-primary:   #555672;  /* slate - structure, CTAs */
+--brand-secondary: #f27028;  /* orange - sparse accents */
+--brand-accent:    #f5bb48;  /* gold - soft highlights */
 --brand-deep:      #483c63;  /* section emphasis */
 ```
 
@@ -185,8 +185,8 @@ Fonts: **Sora** (headings), **Figtree** / **Carlito** (body / docs).
 
 ### Icon credits
 
-[Filter icons](https://www.flaticon.com/free-icons/filter) created by [joalfa](https://www.flaticon.com/authors/joalfa) — Flaticon.  
-[Sort icons](https://www.flaticon.com/free-icons/sort) created by [Kiraaaaa6](https://www.flaticon.com/authors/kiraaaaa6) — Flaticon.
+[Filter icons](https://www.flaticon.com/free-icons/filter) created by [joalfa](https://www.flaticon.com/authors/joalfa) - Flaticon.  
+[Sort icons](https://www.flaticon.com/free-icons/sort) created by [Kiraaaaa6](https://www.flaticon.com/authors/kiraaaaa6) - Flaticon.
 
 ---
 

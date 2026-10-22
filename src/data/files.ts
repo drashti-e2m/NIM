@@ -103,7 +103,7 @@ const wbe = itemsFor(
     id: "wbe",
     label: "WBE",
     presentationTitle: "WBE Final Strategy Presentation.pdf",
-    presentationBody: `WBE — strategy presentation
+    presentationBody: `WBE - strategy presentation
 
 Purpose
 Position certified women-owned suppliers for buyer introductions and member growth.
@@ -117,7 +117,7 @@ Priorities
 3. Track introductions against named buyer categories.
 
 Use this deck before drafting public posts or emails. Keep claims tied to program facts in the tracker and playbook.`,
-    playbookBody: `WBE — In-person networking playbook
+    playbookBody: `WBE - In-person networking playbook
 
 Before the room
 Confirm category focus for the night. Bring a one-line intro that names certification and category, not a pitch deck.
@@ -130,7 +130,7 @@ Log the introduction in the nurture tracker within 24 hours. Send one follow-up 
 
 Do not
 Promise introductions you cannot make. Treat every badge as an automatic win.`,
-    cadenceBody: `WBE — Blog topics + social cadence
+    cadenceBody: `WBE - Blog topics + social cadence
 
 Week | Theme | Channel
 1 | What certification unlocks | LinkedIn + blog
@@ -140,7 +140,7 @@ Week | Theme | Channel
 
 Cadence notes
 Two LinkedIn posts per week max. One member story per month. Session invites go out 14 and 3 days before.`,
-    eventsBody: `WBE — Associations & events strategy
+    eventsBody: `WBE - Associations & events strategy
 
 Priority events
 - Supplier diversity councils (regional)
@@ -153,7 +153,7 @@ Attend only if at least three target buyer categories will be in the room.
 Field | Value
 Owner | Program lead
 Review cycle | Monthly`,
-    emailBody: `WBE — Email lead generation and nurture
+    emailBody: `WBE - Email lead generation and nurture
 
 Sequence
 1. Welcome + what certification unlocks
@@ -163,14 +163,14 @@ Sequence
 
 Rules
 One CTA per email. No discount language. Reference the playbook for in-person follow-up.`,
-    implBody: `WBE — Implementation service items
+    implBody: `WBE - Implementation service items
 
 Item | Status | Owner
 Voice lock for member emails | Done | Program lead
 Session invite templates | In progress | Marketing
 Buyer category list refresh | Planned | Partnerships
 Tracker hygiene (weekly) | Ongoing | Ops`,
-    trackerBody: `WBE — Lead generation and nurture tracker
+    trackerBody: `WBE - Lead generation and nurture tracker
 
 Lead | Source | Stage | Next step | Owner
 Avery Mills | Session | Nurture | Send story email | Marketing
@@ -185,7 +185,7 @@ const powerup = itemsFor(
     id: "powerup",
     label: "PowerUp Leadership",
     presentationTitle: "NIM PowerUp Strategy First Final Presentation.pdf",
-    presentationBody: `PowerUp Leadership — strategy presentation
+    presentationBody: `PowerUp Leadership - strategy presentation
 
 Purpose
 Move operators from interest in a peer growth cohort to a discovery call and enrollment.
@@ -200,7 +200,7 @@ Priorities
 
 Drafting rule
 If a line could belong to any leadership course, rewrite it until it only fits PowerUp.`,
-    playbookBody: `PowerUp — In-person networking playbook
+    playbookBody: `PowerUp - In-person networking playbook
 
 Before
 Know which cohort window is open. Bring one alumni example from the last 90 days.
@@ -213,7 +213,7 @@ Log the contact. Send a short note that restates their goal and the call link.
 
 Avoid
 Pitching enrollment before listening. Stacking multiple CTAs in one follow-up.`,
-    cadenceBody: `PowerUp — Blog topics + social cadence
+    cadenceBody: `PowerUp - Blog topics + social cadence
 
 Week | Theme | Channel
 1 | What a cohort is for | LinkedIn
@@ -223,7 +223,7 @@ Week | Theme | Channel
 
 Cadence notes
 One long piece per month. Social points at the piece or the call, not both in the same post.`,
-    eventsBody: `PowerUp — Associations & events strategy
+    eventsBody: `PowerUp - Associations & events strategy
 
 Priority rooms
 - Operator peer forums
@@ -236,7 +236,7 @@ Show up only when the room is operators, not general career seekers.
 Field | Value
 Owner | Partnerships
 Review cycle | Monthly`,
-    emailBody: `PowerUp — Email lead generation and nurture
+    emailBody: `PowerUp - Email lead generation and nurture
 
 Sequence
 1. What PowerUp is (and is not)
@@ -246,14 +246,14 @@ Sequence
 
 Rules
 No long application wall in email. One link. Sound like a peer program.`,
-    implBody: `PowerUp — Implementation service items
+    implBody: `PowerUp - Implementation service items
 
 Item | Status | Owner
 Discovery call script | Done | Partnerships
 Alumni story bank | In progress | Content
 Landing page CTA refresh | Planned | Marketing
 Weekly lead hygiene | Ongoing | Ops`,
-    trackerBody: `PowerUp — Lead generation and nurture tracker
+    trackerBody: `PowerUp - Lead generation and nurture tracker
 
 Lead | Source | Stage | Next step | Owner
 Jordan Lee | Roundtable | Discovery | Confirm call | Partnerships
@@ -268,7 +268,7 @@ const crosscap = itemsFor(
     id: "crosscap",
     label: "CrossCap",
     presentationTitle: "CrossCap Final Strategy Presentation.pdf",
-    presentationBody: `CrossCap — strategy presentation
+    presentationBody: `CrossCap - strategy presentation
 
 Purpose
 Build credibility with operators before a capital or advisory conversation.
@@ -283,7 +283,7 @@ Priorities
 
 Drafting rule
 If a sentence needs a glossary, cut it or define it in plain language in the same line.`,
-    playbookBody: `CrossCap — In-person networking playbook
+    playbookBody: `CrossCap - In-person networking playbook
 
 Before
 Pull the target account list for the event. Know one operator outcome story.
@@ -296,7 +296,7 @@ Log the conversation. Send education first; capital ask only after a clear fit s
 
 Avoid
 Collecting badges without a next step. Treating every handshake as a pipeline win.`,
-    cadenceBody: `CrossCap — Blog topics + social cadence
+    cadenceBody: `CrossCap - Blog topics + social cadence
 
 Week | Theme | Channel
 1 | Operator outcomes, not jargon | Blog
@@ -306,7 +306,7 @@ Week | Theme | Channel
 
 Cadence notes
 One educational piece before any capital CTA in a sequence.`,
-    eventsBody: `CrossCap — Associations & events strategy
+    eventsBody: `CrossCap - Associations & events strategy
 
 Priority associations
 - Industry operator associations
@@ -319,7 +319,7 @@ Must map to at least two accounts on the current target list.
 Field | Value
 Owner | Marketing lead
 Review cycle | Monthly`,
-    emailBody: `CrossCap — Email lead generation and nurture
+    emailBody: `CrossCap - Email lead generation and nurture
 
 Sequence
 1. Operator outcome story
@@ -329,14 +329,14 @@ Sequence
 
 Rules
 No term-sheet language in nurture. Keep the ask conversational.`,
-    implBody: `CrossCap — Implementation service items
+    implBody: `CrossCap - Implementation service items
 
 Item | Status | Owner
 Target account list refresh | Done | Marketing
 Outcome story templates | In progress | Content
 Event ROI tracker | Planned | Ops
 Nurture sequence QA | Ongoing | Marketing`,
-    trackerBody: `CrossCap — Lead generation and nurture tracker
+    trackerBody: `CrossCap - Lead generation and nurture tracker
 
 Lead | Source | Stage | Next step | Owner
 Harbor Ops LLC | Association | Nurture | Send fit email | Marketing
@@ -352,7 +352,7 @@ const functionPoint = itemsFor(
     label: "FunctionPoint",
     presentationTitle:
       "Function Point Strategy Presentation Final 8.19.2022.pdf",
-    presentationBody: `Function Point — strategy presentation
+    presentationBody: `Function Point - strategy presentation
 
 Purpose
 Educate delivery leads on clearer estimation conversations, then invite a product walkthrough.
@@ -367,7 +367,7 @@ Priorities
 
 Drafting rule
 Never invent delivery dates. Never imply a guarantee from an example figure.`,
-    playbookBody: `Function Point — In-person networking playbook
+    playbookBody: `Function Point - In-person networking playbook
 
 Before
 Bring one estimation conversation example labeled as an illustration.
@@ -380,7 +380,7 @@ Send the education piece, then the walkthrough link if they asked for product de
 
 Avoid
 Feature tours before the problem is named. Absolute claims about schedule certainty.`,
-    cadenceBody: `Function Point — Blog topics + social cadence
+    cadenceBody: `Function Point - Blog topics + social cadence
 
 Week | Theme | Channel
 1 | Why estimates fail in stakeholder rooms | Blog
@@ -390,7 +390,7 @@ Week | Theme | Channel
 
 Cadence notes
 Every numeric example must say “illustration.” One CTA max per piece.`,
-    eventsBody: `Function Point — Associations & events strategy
+    eventsBody: `Function Point - Associations & events strategy
 
 Priority rooms
 - Delivery / PMO communities
@@ -403,7 +403,7 @@ Skip pure “tool shootout” events unless a named account is attending.
 Field | Value
 Owner | Content lead
 Review cycle | Monthly`,
-    emailBody: `Function Point — Email lead generation and nurture
+    emailBody: `Function Point - Email lead generation and nurture
 
 Sequence
 1. Why estimates fail with stakeholders
@@ -413,14 +413,14 @@ Sequence
 
 Rules
 No guaranteed dates. No invented client metrics.`,
-    implBody: `Function Point — Implementation service items
+    implBody: `Function Point - Implementation service items
 
 Item | Status | Owner
 Illustration library | Done | Content
 Walkthrough CTA on blog | In progress | Marketing
 PMO community list | Planned | Partnerships
 Weekly tracker review | Ongoing | Ops`,
-    trackerBody: `Function Point — Lead generation and nurture tracker
+    trackerBody: `Function Point - Lead generation and nurture tracker
 
 Lead | Source | Stage | Next step | Owner
 Devon Park | Blog | Nurture | Send illustration | Content
@@ -435,7 +435,7 @@ const pggc = itemsFor(
     id: "pggc",
     label: "PGGC",
     presentationTitle: "Official PGGC full strategy presentation Sept 2026.pdf",
-    presentationBody: `PGGC — strategy presentation (Sept 2026)
+    presentationBody: `PGGC - strategy presentation (Sept 2026)
 
 Purpose
 Full client example covering positioning, networking, content cadence, associations, email nurture, and implementation tracking.

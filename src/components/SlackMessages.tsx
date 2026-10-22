@@ -63,7 +63,7 @@ export function SlackMessagesPanel() {
           title={
             connected
               ? "Posting via SLACK_WEBHOOK_URL"
-              : "Local feed — set SLACK_WEBHOOK_URL for live Slack"
+              : "Local feed - set SLACK_WEBHOOK_URL for live Slack"
           }
         >
           {connected ? "Live" : "Demo"} · {channel}

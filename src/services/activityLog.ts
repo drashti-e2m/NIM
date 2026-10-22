@@ -11,7 +11,7 @@ function persist(items: ActivityItem[]): void {
     localStorage.setItem(ACTIVITY_KEY, JSON.stringify(items.slice(0, MAX_EVENTS)));
     scheduleSharedPush();
   } catch {
-    // quota / private mode — ignore
+    // quota / private mode - ignore
   }
   window.dispatchEvent(new Event(ACTIVITY_CHANGED_EVENT));
 }

@@ -1,6 +1,6 @@
 import type { DraftStatus, Format, Stage } from "./types";
 
-/** B2B Marketing Content Kit — Awareness (HubSpot-style). */
+/** B2B Marketing Content Kit - Awareness (HubSpot-style). */
 export const AWARENESS_FORMATS: Format[] = [
   "Blog Post",
   "Social Media Post",
@@ -12,7 +12,7 @@ export const AWARENESS_FORMATS: Format[] = [
   "Educational Webinar",
 ];
 
-/** B2B Marketing Content Kit — Consideration. */
+/** B2B Marketing Content Kit - Consideration. */
 export const CONSIDERATION_FORMATS: Format[] = [
   "Email nurturing sequence",
   "Product comparison guide",
@@ -23,7 +23,7 @@ export const CONSIDERATION_FORMATS: Format[] = [
   "Podcasts and webinars",
 ];
 
-/** B2B Marketing Content Kit — Decision. */
+/** B2B Marketing Content Kit - Decision. */
 export const DECISION_FORMATS: Format[] = [
   "Product brochures, data sheets",
   "Service / support / implementation sheets",

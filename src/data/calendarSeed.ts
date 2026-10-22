@@ -40,7 +40,7 @@ function stubArticle(input: {
     primaryKeyword: keywords[0] ?? "",
     secondaryKeywords: keywords.slice(1),
     research: "Research pack for calendar planning.",
-    outline: `Outline — ${input.title}`,
+    outline: `Outline - ${input.title}`,
     approvedOutline: null,
     sections: [],
     lede: "",
@@ -67,7 +67,7 @@ function stubArticle(input: {
   };
 }
 
-/** Stable calendar seed IDs — past, today, and upcoming. */
+/** Stable calendar seed IDs - past, today, and upcoming. */
 export const CALENDAR_SEED_IDS = [
   "cal-past-powerup-leadership",
   "cal-past-wbe-certification",

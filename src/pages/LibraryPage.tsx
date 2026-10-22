@@ -42,7 +42,7 @@ export function LibraryPage() {
       body: blog.body,
       status: blog.status,
       updatedAt: blog.updatedAt,
-      tone: blog.toneName || "—",
+      tone: blog.toneName || "-",
       words: `${blog.targetWords || 0} words`,
       href: `/clients/${blog.clientId}/blog/${blog.id}`,
     }));
@@ -54,7 +54,7 @@ export function LibraryPage() {
       body: draft.body,
       status: draft.status,
       updatedAt: draft.updatedAt,
-      tone: draft.brief?.format || "—",
+      tone: draft.brief?.format || "-",
       words: "Draft",
       href: `/library/${draft.id}`,
     }));

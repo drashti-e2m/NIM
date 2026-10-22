@@ -125,7 +125,7 @@ export function TonesPage() {
       bestFor: "General blog and email content for this brand voice.",
     });
     setSelectedId(tone.id);
-    setNotice("New tone created — details opened so you can edit and save.");
+    setNotice("New tone created - details opened so you can edit and save.");
   }
 
   function saveDraft() {
@@ -224,7 +224,7 @@ export function TonesPage() {
             </span>
             <p>
               The right tone builds trust. Choose a voice that matches your
-              audience, brand and goal — and make every word count.
+              audience, brand and goal - and make every word count.
             </p>
           </aside>
         </div>

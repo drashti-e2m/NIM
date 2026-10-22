@@ -114,7 +114,7 @@ function wrapFormat(
     case "Videos":
     case "Video demo":
       return [
-        `Video outline — ${title}`,
+        `Video outline - ${title}`,
         "",
         "Hook (0:00)",
         core[0],
@@ -134,7 +134,7 @@ function wrapFormat(
     case "Educational Webinar":
     case "Podcasts and webinars":
       return [
-        `Session plan — ${title}`,
+        `Session plan - ${title}`,
         "",
         "Audience",
         brief.persona || "Ideal buyers in this stage",
@@ -154,15 +154,15 @@ function wrapFormat(
 
     case "Email nurturing sequence":
       return [
-        `Nurture sequence — ${title}`,
+        `Nurture sequence - ${title}`,
         "",
-        "Email 1 — Open the problem",
+        "Email 1 - Open the problem",
         core[0],
         "",
-        "Email 2 — Add proof",
+        "Email 2 - Add proof",
         core[2] ?? core[1],
         "",
-        "Email 3 — Invite the next step",
+        "Email 3 - Invite the next step",
         `${core[1]}\n\n${cta}`,
         "",
         client.name,
@@ -175,9 +175,9 @@ function wrapFormat(
         copy,
         "",
         "Comparison frame",
-        "Option A — Status quo",
-        "Option B — Partial fix",
-        `Option C — ${client.name}`,
+        "Option A - Status quo",
+        "Option B - Partial fix",
+        `Option C - ${client.name}`,
         "",
         "Decision criteria",
         "- Fit for the buyer’s real constraint",
@@ -212,7 +212,7 @@ function wrapFormat(
 
     case "Kit or Tool":
       return [
-        `Kit — ${title}`,
+        `Kit - ${title}`,
         "",
         "What is inside",
         "- One-page problem frame",
@@ -247,7 +247,7 @@ function wrapFormat(
 
     case "FAQs":
       return [
-        `FAQs — ${title}`,
+        `FAQs - ${title}`,
         "",
         "Q: What problem is this for?",
         `A: ${core[1]}`,
@@ -278,7 +278,7 @@ function wrapFormat(
 
     case "Blog Post":
     default:
-      return [copy, "", `${cta} — ${client.name}`].join("\n");
+      return [copy, "", `${cta} - ${client.name}`].join("\n");
   }
 }
 

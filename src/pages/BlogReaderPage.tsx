@@ -10,7 +10,6 @@ import {
   stripHtml,
   wordCount,
 } from "../format";
-import { statusLabel } from "../labels";
 import { sectionsToBody } from "../services/blogGenerate";
 import { getDriveItem } from "../services/drive";
 import type { DraftStatus } from "../types";
@@ -181,7 +180,6 @@ export function BlogReaderPage() {
       status,
       articlePhase: status === "approved" ? "approved" : "in_review",
     });
-    setNotice(`Status set to ${statusLabel(status)}.`);
   }
 
   function handleDelete() {
@@ -210,7 +208,6 @@ export function BlogReaderPage() {
       <div className="blog-review-bar">
         <div className="blog-review-bar-copy">
           <span className="blog-review-kicker">Review</span>
-          <p>Read it as a published piece — then approve or send back to edit.</p>
         </div>
         <div className="article-toolbar-actions">
           <Link

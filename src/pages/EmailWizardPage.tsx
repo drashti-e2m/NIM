@@ -249,7 +249,7 @@ export function EmailWizardPage() {
       }
       setPreviewTab("preview");
       setGenerating(false);
-      setNotice("Generated. Review on the right — nothing is sent.");
+      setNotice("Generated. Review on the right - nothing is sent.");
     }, 260);
   }
 
@@ -489,7 +489,7 @@ export function EmailWizardPage() {
             {generating ? "Generating…" : "Generate Email"}
           </button>
           <p className="email-helper">
-            Draft only — review before saving
+            Draft only - review before saving
             {savedCount > 0 && activeClient
               ? ` · ${savedCount} saved for ${activeClient.name}`
               : ""}
@@ -585,7 +585,7 @@ export function EmailWizardPage() {
                           onClick={() => {
                             patchActive({
                               subject: variant,
-                              previewText: `${variant} — open for the short version.`,
+                              previewText: `${variant} - open for the short version.`,
                             });
                             setPreviewTab("edit");
                             setNotice("Subject applied.");
@@ -701,7 +701,7 @@ export function EmailWizardPage() {
           <div className="email-preview-footer">
             <aside className="email-demo-note">
               Simulated demo email. Connect HubSpot or Mailchimp later to send
-              or schedule — generating never sends.
+              or schedule - generating never sends.
             </aside>
             <div className="email-preview-actions">
               <button

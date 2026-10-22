@@ -29,7 +29,7 @@ export const seedClients: Client[] = [
     contact: "Partnerships",
     city: "Regional",
     summary:
-      "Leadership development for scaling private companies — leadership challenges in growth, talent retention, post-acquisition leadership gaps, and team alignment.",
+      "Leadership development for scaling private companies - leadership challenges in growth, talent retention, post-acquisition leadership gaps, and team alignment.",
     initials: "PU",
     color: "#2f5d50",
     createdAt: "2026-09-08T12:00:00.000Z",

@@ -76,7 +76,7 @@ function toneHint(tone: ToneOfVoice | null): string {
 
 function previewFromSubject(subject: string): string {
   const clean = subject.replace(/\s+/g, " ").trim();
-  if (clean.length <= 90) return `${clean} — open for the short version.`;
+  if (clean.length <= 90) return `${clean} - open for the short version.`;
   return `${clean.slice(0, 86)}…`;
 }
 
@@ -175,7 +175,7 @@ export function regenerateNurtureEmail(
 export function defaultCampaignName(client: Client, objective: string): string {
   const short = objective.trim().split(/\s+/).slice(0, 6).join(" ");
   return short
-    ? `${client.name} nurture — ${short}`
+    ? `${client.name} nurture - ${short}`
     : `${client.name} email nurture`;
 }
 
@@ -206,7 +206,7 @@ export function generateSingleEmail(input: {
     `Focus on high-intent opportunities for ${brief.audience.toLowerCase()}`,
     `Improve clarity so ${client.name} claims stay credible`,
     `Use proof points buyers can verify quickly`,
-    `Keep one clear next step — “${brief.cta}”`,
+    `Keep one clear next step - “${brief.cta}”`,
     `Stay consistent with the brand voice in follow-ups`,
   ];
 
@@ -214,7 +214,7 @@ export function generateSingleEmail(input: {
     `Hi {{first_name}},`,
     ``,
     brief.contentType === "newsletter"
-      ? `A short roundup from ${client.name} — built for ${brief.audience.toLowerCase()}.`
+      ? `A short roundup from ${client.name} - built for ${brief.audience.toLowerCase()}.`
       : `If you are focused on “${brief.goal.toLowerCase()}”, here is a practical take from ${client.name}.`,
     ``,
     proof,

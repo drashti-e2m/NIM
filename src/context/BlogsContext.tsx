@@ -219,7 +219,7 @@ export function BlogsProvider({ children }: { children: ReactNode }) {
               typeof input.expectedToken === "number" &&
               input.expectedToken < blog.generationToken
             ) {
-              // Stale write — keep newer article
+              // Stale write - keep newer article
               updated = blog;
               return blog;
             }
@@ -287,7 +287,7 @@ export function BlogsProvider({ children }: { children: ReactNode }) {
               title: approved.title || blog.title,
               approvedOutline: approved,
               outline: [
-                `Outline — ${approved.title}`,
+                `Outline - ${approved.title}`,
                 `Introduction: ${approved.introductionPurpose}`,
                 "",
                 ...approved.sections.flatMap((section, index) => [

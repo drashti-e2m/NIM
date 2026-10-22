@@ -90,12 +90,12 @@ export function DraftEditor(props: DraftEditorProps) {
         <Meta label="Stage" value={stageLabel(props.stage)} />
         <Meta label="Format" value={props.format} />
         <Meta label="Topic" value={props.topicTitle} />
-        <Meta label="Persona" value={props.persona || "—"} />
-        <Meta label="Tone" value={props.tone || "—"} />
-        <Meta label="Goal" value={props.goal || "—"} />
-        <Meta label="Keywords" value={props.keywords || "—"} />
-        <Meta label="Call to action" value={props.cta || "—"} />
-        <Meta label="Instructions" value={props.instructions || "—"} />
+        <Meta label="Persona" value={props.persona || "-"} />
+        <Meta label="Tone" value={props.tone || "-"} />
+        <Meta label="Goal" value={props.goal || "-"} />
+        <Meta label="Keywords" value={props.keywords || "-"} />
+        <Meta label="Call to action" value={props.cta || "-"} />
+        <Meta label="Instructions" value={props.instructions || "-"} />
       </aside>
     </div>
   );

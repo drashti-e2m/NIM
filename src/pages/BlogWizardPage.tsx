@@ -143,7 +143,7 @@ export function BlogWizardPage() {
   const [suggestingKeywords, setSuggestingKeywords] = useState(false);
   const [research, setResearch] = useState("");
   const [researchPack, setResearchPack] = useState<ResearchPack | null>(null);
-  const [researchApproved, setResearchApproved] = useState(false);
+  const [, setResearchApproved] = useState(false);
   const [sourceDraft, setSourceDraft] = useState("");
   const [editingItem, setEditingItem] = useState<{
     key: ResearchListKey;
@@ -320,7 +320,7 @@ export function BlogWizardPage() {
         const excerpt = (file.body ?? file.detail ?? "").trim().slice(0, 900);
         return [
           `## ${file.name}`,
-          excerpt || "(No extractable text yet — file used as a reference label.)",
+          excerpt || "(No extractable text yet - file used as a reference label.)",
         ].join("\n");
       }),
     ].join("\n");
@@ -598,7 +598,7 @@ export function BlogWizardPage() {
       ),
       site
         ? `Website (${siteHost}) messaging cluster: problem → approach → proof → next step; CTA language is consultative, not hard-sell.`
-        : `No website URL on file — voice and claims inferred from client profile and uploaded docs only.`,
+        : `No website URL on file - voice and claims inferred from client profile and uploaded docs only.`,
       `Topic fit on-site: pages and copy that map to “${topicLabel}” should lead with buyer constraints, then ${activeClient.name}’s method.`,
       primary
         ? `Keyword alignment on client materials: “${primary}”${secondary ? ` / “${secondary}”` : ""} appears as an educational theme, not a product pitch alone.`
@@ -613,7 +613,7 @@ export function BlogWizardPage() {
           : `From ${file.name}: use as brand/audience context (parsed; no long excerpt stored).`;
       }),
       selectedFiles.length === 0
-        ? "No Drive files selected for this run — research leans on client profile, website, and open-web competitor scan."
+        ? "No Drive files selected for this run - research leans on client profile, website, and open-web competitor scan."
         : null,
       briefSnippet ? `Brief / instructions carried in: ${briefSnippet}` : null,
     ].filter((item): item is string => Boolean(item));
@@ -626,16 +626,16 @@ export function BlogWizardPage() {
     const competitorExtract: string[] = [
       `Open-web scan for “${primary}” + ${activeClient.industry.toLowerCase()}: top results skew informational (guides, frameworks) with commercial intent in comparison / pricing pages.`,
       `Competitor cluster (${competitorNames[0]}): lead with feature matrices and ROI calculators; under-explain the buyer’s day-to-day workflow friction.`,
-      `${competitorNames[1]}: heavy use of generic “AI-powered / all-in-one” claims with thin proof — opening for ${activeClient.name} to stay specific and evidence-led.`,
+      `${competitorNames[1]}: heavy use of generic “AI-powered / all-in-one” claims with thin proof - opening for ${activeClient.name} to stay specific and evidence-led.`,
       `${competitorNames[2]}: strong thought-leadership posts on ${primary}, but weak internal linking and thin CTA paths from education → evaluation.`,
       `Common competitor angle on “${topicLabel}”: listicles and 5-step checklists; few pieces connect steps to measurable buyer outcomes.`,
       `Messaging gap vs competitors: rivals emphasize speed/automation; few address ${audienceLabel.toLowerCase()} objections around risk, change management, and proof quality.`,
-      `SERP / content pattern: “what is / how to” pages rank; “vs / alternative” pages convert — draft should educate first, then invite a concrete next step with ${activeClient.name}.`,
+      `SERP / content pattern: “what is / how to” pages rank; “vs / alternative” pages convert - draft should educate first, then invite a concrete next step with ${activeClient.name}.`,
       referenceUrls.length > 0
         ? `Reference URLs in brief scanned for takeaways: ${referenceUrls.join(", ")}`
-        : `No extra reference URLs in brief — competitor notes drawn from category search patterns and typical vendor sites.`,
+        : `No extra reference URLs in brief - competitor notes drawn from category search patterns and typical vendor sites.`,
       secondary
-        ? `Secondary theme “${secondary}” is under-covered in competitor blogs relative to demand — good supporting section or sidebar callout.`
+        ? `Secondary theme “${secondary}” is under-covered in competitor blogs relative to demand - good supporting section or sidebar callout.`
         : `Long-tail variants of “${primary}” (for [role], for [industry], checklist, mistakes) are lightly contested in competitor content.`,
       `Citation opportunity: competitors rarely cite primary research; pairing ${activeClient.name} proof with one external benchmark strengthens trust.`,
     ];
@@ -645,9 +645,9 @@ export function BlogWizardPage() {
       `Limited coverage of implementation steps for “${topicLabel}”. Include a clear framework.`,
       "Few examples for different industries / buyer contexts. Add real-world use cases.",
       selectedFiles.length === 0
-        ? "Client docs not selected for this run — brand and persona evidence may be thin."
+        ? "Client docs not selected for this run - brand and persona evidence may be thin."
         : `Competitor comparison angles for “${primary}” are under-covered in current materials.`,
-      `Internal link targets related to “${primary}” are unclear — draft may need related-article placeholders.`,
+      `Internal link targets related to “${primary}” are unclear - draft may need related-article placeholders.`,
     ].slice(0, 5);
 
     const opportunities = [
@@ -669,7 +669,7 @@ export function BlogWizardPage() {
       }`,
       `Top performing content themes: ${primary}${secondary ? `, ${secondary}` : ""}, strategy, measurement, and examples.`,
       "Search intent: Informational (how-to and best practices).",
-      `Winning angle: practical framework for “${topicLabel}”, grounded in ${activeClient.name} proof — not a feature tour.`,
+      `Winning angle: practical framework for “${topicLabel}”, grounded in ${activeClient.name} proof - not a feature tour.`,
     ].slice(0, 5);
 
     const fileSources: ResearchSource[] = selectedFiles.slice(0, 2).map((file) => ({
@@ -680,7 +680,7 @@ export function BlogWizardPage() {
           .replace(/\s+/g, " ")
           .trim()
           .slice(0, 110) ||
-        `Parsed from client Drive — use for brand voice and audience context.`,
+        `Parsed from client Drive - use for brand voice and audience context.`,
     }));
 
     const sources: ResearchSource[] = [
@@ -697,7 +697,7 @@ export function BlogWizardPage() {
       ...referenceUrls.slice(0, 2).map((url) => ({
         link: url,
         kind: "external" as const,
-        snippet: "Reference URL from the brief — fold takeaways into evidence callouts.",
+        snippet: "Reference URL from the brief - fold takeaways into evidence callouts.",
       })),
       {
         link: `Competitor analysis – Top results for “${primary}”`,
@@ -881,7 +881,7 @@ export function BlogWizardPage() {
         ...researchPack,
         sources: [
           ...researchPack.sources,
-          { link: next, kind, snippet: "Added manually — verify before drafting." },
+          { link: next, kind, snippet: "Added manually - verify before drafting." },
         ],
       },
       keywords,
@@ -1414,7 +1414,7 @@ export function BlogWizardPage() {
                 options={tones.map((item) => ({
                   value: item.id,
                   label: item.bestFor
-                    ? `${item.name} — ${item.bestFor}`
+                    ? `${item.name} - ${item.bestFor}`
                     : item.name,
                 }))}
                 onChange={(next) => {
@@ -1496,7 +1496,7 @@ export function BlogWizardPage() {
                   <input
                     value={topic}
                     onChange={(e) => setTopic(e.target.value)}
-                    placeholder="Optional — leave blank if you only have a rough idea or brief"
+                    placeholder="Optional - leave blank if you only have a rough idea or brief"
                   />
                 </label>
                 <label className="field field-wide">
@@ -1514,7 +1514,7 @@ export function BlogWizardPage() {
                   value={briefFileId}
                   searchable
                   searchPlaceholder="Search brief files…"
-                  placeholder="Optional — select a Drive brief"
+                  placeholder="Optional - select a Drive brief"
                   options={[
                     { value: "", label: "None" },
                     ...briefFiles.map((file) => ({

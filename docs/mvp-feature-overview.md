@@ -1,4 +1,4 @@
-# NIM Studio — MVP Feature Overview (Page by Page)
+# NIM Studio - MVP Feature Overview (Page by Page)
 
 Holistic guide to what exists in the MVP today: every page, what you can do there, how pieces connect, and what is demo vs live.
 
@@ -6,7 +6,7 @@ Holistic guide to what exists in the MVP today: every page, what you can do ther
 
 ## Product in one paragraph
 
-**NIM Studio** is an agency content workspace for New Initiatives Marketing. Teams pick a client, generate or demo a blog (topic → keywords → research → outline → draft), review with SEO and repurpose assets, track deadlines on a calendar, manage saved drafts, and message the team via Slack — all in a branded shell with data in the browser (`localStorage`). Live AI and real Google OAuth are not required for demos; Slack and calendar can optionally hit real endpoints when env vars are set.
+**NIM Studio** is an agency content workspace for New Initiatives Marketing. Teams pick a client, generate or demo a blog (topic → keywords → research → outline → draft), review with SEO and repurpose assets, track deadlines on a calendar, manage saved drafts, and message the team via Slack - all in a branded shell with data in the browser (`localStorage`). Live AI and real Google OAuth are not required for demos; Slack and calendar can optionally hit real endpoints when env vars are set.
 
 ---
 
@@ -44,14 +44,14 @@ Seed clients (WBE, PowerUp Leadership, CrossCap, Function Point, PGGC) ship with
 
 ## Page-by-page features
 
-### 1. Home / Dashboard — `/`
+### 1. Home / Dashboard - `/`
 
 **Purpose:** At-a-glance ops hub for content status, deadlines, activity, and team chat.
 
 | Section | Features |
 |---------|----------|
 | Header | Greeting (Good morning/afternoon/evening), notifications icon, account avatar, **+ Generate Blog** |
-| KPIs | Total blogs, drafts in progress, approved, clients — each links to Library or Clients |
+| KPIs | Total blogs, drafts in progress, approved, clients - each links to Library or Clients |
 | Deadline board | Overdue / Due today / Upcoming; by-client chips; Export Google (`.ics`); Sync via API; link to full calendar |
 | Recent Activity | Latest blog/draft events; link to full Activity |
 | Slack messages | Team feed + compose/send (demo or live webhook) |
@@ -62,7 +62,7 @@ Seed clients (WBE, PowerUp Leadership, CrossCap, Function Point, PGGC) ship with
 
 ---
 
-### 2. Client Hub — `/clients`
+### 2. Client Hub - `/clients`
 
 **Purpose:** Find or create clients and open their workspace.
 
@@ -77,7 +77,7 @@ Seed clients (WBE, PowerUp Leadership, CrossCap, Function Point, PGGC) ship with
 
 ---
 
-### 3. Client Workspace — `/clients/:clientId`
+### 3. Client Workspace - `/clients/:clientId`
 
 **Purpose:** Per-client “Drive” and launch pad for Blog Studio.
 
@@ -92,7 +92,7 @@ Seed clients (WBE, PowerUp Leadership, CrossCap, Function Point, PGGC) ship with
 
 ---
 
-### 4. Blog Studio / Generate — `/clients/:clientId/generate`
+### 4. Blog Studio / Generate - `/clients/:clientId/generate`
 
 **Purpose:** Guided blog creation.
 
@@ -118,7 +118,7 @@ Seed clients (WBE, PowerUp Leadership, CrossCap, Function Point, PGGC) ship with
 
 ---
 
-### 5. Review / Reader — `/clients/:clientId/blog/:blogId`
+### 5. Review / Reader - `/clients/:clientId/blog/:blogId`
 
 **Purpose:** Read the article and run post-generation tools (no regenerate here).
 
@@ -135,7 +135,7 @@ Seed clients (WBE, PowerUp Leadership, CrossCap, Function Point, PGGC) ship with
 
 ---
 
-### 6. Blog Editor — `/clients/:clientId/blog/:blogId/edit`
+### 6. Blog Editor - `/clients/:clientId/blog/:blogId/edit`
 
 **Purpose:** Refine the saved draft in a document-style canvas.
 
@@ -151,7 +151,7 @@ Seed clients (WBE, PowerUp Leadership, CrossCap, Function Point, PGGC) ship with
 
 ---
 
-### 7. Saved Drafts (Library) — `/library`
+### 7. Saved Drafts (Library) - `/library`
 
 **Purpose:** All generated blogs (+ legacy drafts) in one filterable list.
 
@@ -167,7 +167,7 @@ Seed clients (WBE, PowerUp Leadership, CrossCap, Function Point, PGGC) ship with
 
 ---
 
-### 8. Legacy draft detail — `/library/:draftId`
+### 8. Legacy draft detail - `/library/:draftId`
 
 **Purpose:** Edit older “content kit” drafts (local template regenerate).
 
@@ -180,7 +180,7 @@ Seed clients (WBE, PowerUp Leadership, CrossCap, Function Point, PGGC) ship with
 
 ---
 
-### 9. Content Calendar — `/calendar`
+### 9. Content Calendar - `/calendar`
 
 **Purpose:** Plan and see publish/review dates across clients.
 
@@ -197,7 +197,7 @@ Seed clients (WBE, PowerUp Leadership, CrossCap, Function Point, PGGC) ship with
 
 ---
 
-### 10. Tones of Voice — `/tones` (Dashboard → Tones)
+### 10. Tones of Voice - `/tones` (Dashboard → Tones)
 
 **Purpose:** Manage voice profiles used in the wizard tone dropdown.
 
@@ -210,7 +210,7 @@ Seed clients (WBE, PowerUp Leadership, CrossCap, Function Point, PGGC) ship with
 
 ---
 
-### 11. Activity — `/activity`
+### 11. Activity - `/activity`
 
 **Purpose:** Full chronological feed (dashboard shows a slice).
 
@@ -223,7 +223,7 @@ Seed clients (WBE, PowerUp Leadership, CrossCap, Function Point, PGGC) ship with
 
 ---
 
-### 12. Usage & Cost — `/usage` (Dashboard → Usage)
+### 12. Usage & Cost - `/usage` (Dashboard → Usage)
 
 **Purpose:** Simulated spend dashboard for demos.
 
@@ -233,11 +233,11 @@ Seed clients (WBE, PowerUp Leadership, CrossCap, Function Point, PGGC) ship with
 | Chart | Daily / weekly / monthly grain |
 | Table | Per-client costs from static demo data |
 
-**Holistic role:** Pitch/ops visual only — not live billing.
+**Holistic role:** Pitch/ops visual only - not live billing.
 
 ---
 
-### 13. SEO Keywords — `/seo` (Blog content → SEO Keywords)
+### 13. SEO Keywords - `/seo` (Blog content → SEO Keywords)
 
 **Purpose:** Aggregate keywords across blogs; see which clients/articles use them.
 
@@ -250,7 +250,7 @@ Seed clients (WBE, PowerUp Leadership, CrossCap, Function Point, PGGC) ship with
 
 ---
 
-### 14. Not found — `*`
+### 14. Not found - `*`
 
 Back to overview; unknown paths land here.
 
@@ -308,5 +308,5 @@ Back to overview; unknown paths land here.
 
 ## Related docs
 
-- [`README.md`](../README.md) — run instructions and folder structure  
-- [`nim-brand-document-spec.md`](./nim-brand-document-spec.md) — document / heading brand rules  
+- [`README.md`](../README.md) - run instructions and folder structure  
+- [`nim-brand-document-spec.md`](./nim-brand-document-spec.md) - document / heading brand rules  

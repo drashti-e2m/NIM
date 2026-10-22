@@ -178,7 +178,7 @@ export async function syncDeadlinesToGoogleApi(
     }
   } catch {
     message =
-      "API unreachable — deadlines kept in the dashboard. Use Export .ics for Google Calendar.";
+      "API unreachable - deadlines kept in the dashboard. Use Export .ics for Google Calendar.";
   }
 
   const state: GoogleCalendarSyncState = {

@@ -45,7 +45,7 @@ export function looksLikeHtml(value: string): boolean {
   return /<[a-z][\s\S]*>/i.test(value.trim());
 }
 
-/** Plain text used for draft / review word counts — keep both pages on this. */
+/** Plain text used for draft / review word counts - keep both pages on this. */
 export function articlePlainText(parts: {
   title?: string;
   lede?: string;

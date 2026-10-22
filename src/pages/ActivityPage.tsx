@@ -73,7 +73,7 @@ export function ActivityPage() {
           <p className="eyebrow">Operations</p>
           <h1>Activity</h1>
           <p className="lede">
-            History of recent work on blogs — creates, outline approvals, drafts,
+            History of recent work on blogs - creates, outline approvals, drafts,
             edits, cover images, review, and status changes.
           </p>
         </div>

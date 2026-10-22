@@ -145,7 +145,7 @@ export function BlogEditorPage() {
       setSaveState("saved");
       setNotice(
         saved.articlePhase === "review_outdated"
-          ? "Saved. Review is marked outdated — reopen Review to rerun checks."
+          ? "Saved. Review is marked outdated - reopen Review to rerun checks."
           : "Saved. Outline association and article ID retained.",
       );
     } catch {
@@ -169,7 +169,7 @@ export function BlogEditorPage() {
           <h1>Draft editor</h1>
           <p className="muted">
             Edits update this article record. Review always loads the latest
-            saved version — it never regenerates.
+            saved version - it never regenerates.
           </p>
           <div className="reader-status">
             <StatusBadge status={status} />

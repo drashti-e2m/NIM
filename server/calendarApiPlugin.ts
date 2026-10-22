@@ -141,7 +141,7 @@ export function calendarApiPlugin(): Plugin {
               sync: "/api/calendar/google/sync",
             },
             note: process.env.GOOGLE_CLIENT_ID
-              ? "GOOGLE_CLIENT_ID detected — wire OAuth token exchange for live inserts."
+              ? "GOOGLE_CLIENT_ID detected - wire OAuth token exchange for live inserts."
               : "Demo Mode. Set GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET for live Google Calendar.",
           });
         }
@@ -223,7 +223,7 @@ export function calendarApiPlugin(): Plugin {
               calendarId: store.lastSync.calendarId,
               syncedAt: store.lastSync.at,
               message: process.env.GOOGLE_CLIENT_ID
-                ? "Live credentials present — replace demo handler with events.insert."
+                ? "Live credentials present - replace demo handler with events.insert."
                 : "Demo sync stored. Dashboard /api/calendar/deadlines is updated. Export .ics to add events in Google Calendar.",
               googleEventShape: events[0] ?? null,
             });

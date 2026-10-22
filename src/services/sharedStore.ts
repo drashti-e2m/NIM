@@ -150,7 +150,7 @@ export async function startSharedStoreSync() {
       }
     }
   } catch {
-    // offline / no middleware — local-only
+    // offline / no middleware - local-only
   }
 
   pollTimer = window.setInterval(() => {

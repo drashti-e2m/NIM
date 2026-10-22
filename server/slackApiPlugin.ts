@@ -25,7 +25,7 @@ const store: { messages: SlackMessage[] } = {
   messages: [
     {
       id: "seed-1",
-      text: "PowerUp draft is ready for review — please flag any tone notes.",
+      text: "PowerUp draft is ready for review - please flag any tone notes.",
       author: "Maya · NIM",
       channel,
       direction: "inbound",
@@ -71,7 +71,7 @@ async function postToSlackWebhook(text: string): Promise<{
       ok: true,
       mode: "demo",
       detail:
-        "No SLACK_WEBHOOK_URL set — message kept in NIM Studio (demo Slack).",
+        "No SLACK_WEBHOOK_URL set - message kept in NIM Studio (demo Slack).",
     };
   }
 

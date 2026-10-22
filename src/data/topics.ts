@@ -43,7 +43,7 @@ const bank: Record<string, Record<Stage, Omit<TopicSuggestion, "id">[]>> = {
       {
         title: "What to prepare before a buyer forum",
         angle:
-          "Certification status, category line, and one question — nothing more.",
+          "Certification status, category line, and one question - nothing more.",
       },
     ],
     decision: [
@@ -133,7 +133,7 @@ const bank: Record<string, Record<Stage, Omit<TopicSuggestion, "id">[]>> = {
       {
         title: "Talk with partnerships about fit",
         angle:
-          "If unsure, the call is the filter — say that plainly.",
+          "If unsure, the call is the filter - say that plainly.",
       },
     ],
   },
@@ -315,7 +315,7 @@ const bank: Record<string, Record<Stage, Omit<TopicSuggestion, "id">[]>> = {
       {
         title: "What the lead tracker is for",
         angle:
-          "First touch through a booked conversation — nothing fuzzier.",
+          "First touch through a booked conversation - nothing fuzzier.",
       },
     ],
     decision: [

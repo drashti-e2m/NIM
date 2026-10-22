@@ -72,7 +72,36 @@ export function DashboardPage() {
         </Link>
         <Link className="kpi-card" to="/clients">
           <div className="kpi-top">
-            <span className="kpi-ico">◎</span>
+            <span className="kpi-ico" aria-hidden>
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="none">
+                <circle
+                  cx="9"
+                  cy="8"
+                  r="3.25"
+                  stroke="currentColor"
+                  strokeWidth="1.75"
+                />
+                <circle
+                  cx="17"
+                  cy="9.25"
+                  r="2.5"
+                  stroke="currentColor"
+                  strokeWidth="1.75"
+                />
+                <path
+                  d="M3.75 18.5c.7-2.85 2.9-4.25 5.25-4.25s4.55 1.4 5.25 4.25"
+                  stroke="currentColor"
+                  strokeWidth="1.75"
+                  strokeLinecap="round"
+                />
+                <path
+                  d="M14.2 14.5c1.35-.55 2.95-.45 4.55.55 1.1.7 1.85 1.75 2.1 3.45"
+                  stroke="currentColor"
+                  strokeWidth="1.75"
+                  strokeLinecap="round"
+                />
+              </svg>
+            </span>
             <span className="kpi-label">Clients</span>
           </div>
           <strong className="kpi-value">{clients.length}</strong>

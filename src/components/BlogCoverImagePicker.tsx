@@ -65,7 +65,7 @@ export function BlogCoverImagePicker({
         <div>
           <h3>Cover image</h3>
           <p className="muted">
-            Optional — add a photo from Drive so the article looks more
+            Optional - add a photo from Drive so the article looks more
             professional in review.
           </p>
         </div>
@@ -119,7 +119,7 @@ export function BlogCoverImagePicker({
           className="blog-cover-empty"
           onClick={() => inputRef.current?.click()}
         >
-          <span aria-hidden>🖼</span>
+          <span aria-hidden>▣</span>
           Add a cover image (optional)
         </button>
       )}
@@ -128,7 +128,7 @@ export function BlogCoverImagePicker({
         <div className="blog-cover-drive-grid" role="listbox" aria-label="Drive images">
           {images.length === 0 ? (
             <p className="muted">
-              No images in Drive yet. Upload one above — it stays with this
+              No images in Drive yet. Upload one above - it stays with this
               client folder.
             </p>
           ) : (

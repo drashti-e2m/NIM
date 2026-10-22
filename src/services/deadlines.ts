@@ -112,7 +112,7 @@ export function buildContentDeadlines(
         clientColor: client?.color ?? "#555672",
         title: blog.title,
         topic: blog.topic || blog.title,
-        toneName: blog.toneName || "—",
+        toneName: blog.toneName || "-",
         targetWords: blog.targetWords || 0,
         status: blog.status,
         timing,
@@ -169,7 +169,7 @@ export function buildDeadlineBoard(
   const byClient = clients
     .map((client) => {
       const list = deadlines.filter((item) => item.clientId === client.id);
-      // Only today / upcoming count as "next" — past dates must never surface here.
+      // Only today / upcoming count as "next" - past dates must never surface here.
       const next =
         list.find((item) => item.timing === "today") ??
         list.find((item) => item.timing === "future") ??

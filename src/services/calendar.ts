@@ -38,7 +38,7 @@ function startOfLocalDay(date: Date): Date {
   return next;
 }
 
-/** Local calendar day key (YYYY-MM-DD) — rolls over at local midnight. */
+/** Local calendar day key (YYYY-MM-DD) - rolls over at local midnight. */
 export function localDateKey(date = new Date()): string {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, "0");

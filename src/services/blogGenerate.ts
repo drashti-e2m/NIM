@@ -72,7 +72,7 @@ export function buildResearch(input: {
   keywords: string[];
 }): string {
   return [
-    `Research pack — ${input.topic}`,
+    `Research pack - ${input.topic}`,
     "",
     `Client: ${input.client.name}`,
     `Industry: ${input.client.industry}`,
@@ -114,7 +114,7 @@ function defaultSectionBlueprints(
       keyPoints: [
         "Open on the live constraint the buyer already feels",
         `Connect the topic directly to ${primary}`,
-        "State why this matters now — not in a vague future",
+        "State why this matters now - not in a vague future",
       ],
       evidenceRequired: ["Buyer situation framed without invented ROI claims"],
       transitionToNext: "Move from the situation into why generic approaches stall.",
@@ -146,7 +146,7 @@ function defaultSectionBlueprints(
         "Keep each step concrete and owner-clear",
         `Anchor every step to ${primary}`,
       ],
-      evidenceRequired: ["Process language only — no fabricated case metrics"],
+      evidenceRequired: ["Process language only - no fabricated case metrics"],
       transitionToNext: "Show how proof is applied inside the framework.",
     },
     {
@@ -217,7 +217,7 @@ export function buildStructuredOutline(input: {
 
 export function outlineToPlainText(outline: ApprovedOutline): string {
   return [
-    `Outline — ${outline.title}`,
+    `Outline - ${outline.title}`,
     `Introduction: ${outline.introductionPurpose}`,
     "",
     ...outline.sections.flatMap((section, index) => [
@@ -302,7 +302,7 @@ function coverKeyPoint(input: {
     `${input.client.name} stays specific about buyer constraints.`;
   const cue = preferredCue(input.tone, input.index);
   if (input.point.toLowerCase().includes("proof") || input.point.toLowerCase().includes("evidence")) {
-    return `${cue ? `${cue} ` : ""}Evidence belongs next to the claim. ${input.point.replace(/\.$/, "")} — and ${proof} Label examples as illustration, not a guarantee buyers can paste into a business case.`;
+    return `${cue ? `${cue} ` : ""}Evidence belongs next to the claim. ${input.point.replace(/\.$/, "")} - and ${proof} Label examples as illustration, not a guarantee buyers can paste into a business case.`;
   }
   if (input.index === 0 && input.notes.trim()) {
     return `${input.point.replace(/\.$/, "")}. ${input.notes.trim().slice(0, 140)} That framing keeps the section useful for buyers evaluating ${input.keyword}.`;
@@ -330,7 +330,7 @@ export function buildDraftLede(input: {
     ? `${cue} ${audience} evaluating “${input.outline.title}” rarely need another abstract overview.`
     : `${audience} evaluating “${input.outline.title}” rarely need another abstract overview.`;
   return [
-    `${open} They need a clear read on the constraint they are already living with — and a path that ${input.client.name} can stand behind without invented ROI claims.`,
+    `${open} They need a clear read on the constraint they are already living with - and a path that ${input.client.name} can stand behind without invented ROI claims.`,
     `This piece walks from the live buyer situation through a practical framework, proof you can check, and one next step. We start with ${firstHeading.toLowerCase()}, stay centered on ${keyword}, and keep every claim specific enough to defend internally.`,
   ].join("\n\n");
 }
@@ -414,7 +414,7 @@ export function generateDraftFromOutline(input: {
       `${input.client.name} stays specific about buyer constraints.`;
     const sectionCue = preferredCue(input.tone, index + 1);
     const paragraphs: string[] = [
-      `${openCue && index === 0 ? `${openCue} ` : ""}${spec.heading} is where ${input.audience || "buyers"} usually get stuck — not because they lack options, but because most advice stays generic. ${input.client.name} starts here on purpose: name the real constraint, then move.`,
+      `${openCue && index === 0 ? `${openCue} ` : ""}${spec.heading} is where ${input.audience || "buyers"} usually get stuck - not because they lack options, but because most advice stays generic. ${input.client.name} starts here on purpose: name the real constraint, then move.`,
       `${sectionCue ? `${sectionCue} ` : ""}When teams evaluate ${keyword}, the conversation often drifts into feature lists and vague transformation language. ${ruleHint}. Ask what must be true in the next 30 days, then test every claim against that bar.`,
     ];
 
@@ -483,7 +483,7 @@ export function generateDraftFromOutline(input: {
   return { title, sections, body, lede, closing, cta };
 }
 
-/** Legacy wrapper used by older wizard paths — still requires outline text. */
+/** Legacy wrapper used by older wizard paths - still requires outline text. */
 export function buildBlogDraft(input: {
   client: Client;
   tone: ToneOfVoice;

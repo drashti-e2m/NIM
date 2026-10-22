@@ -189,7 +189,7 @@ export function UsagePage() {
               <p className="usage-kpi-delta is-down">↓ 12% vs prior period</p>
             </div>
             <span className="usage-kpi-icon tone-purple" aria-hidden>
-              💳
+              $
             </span>
           </div>
           <div className="usage-kpi-footer" aria-hidden />
@@ -202,7 +202,7 @@ export function UsagePage() {
               <p className="usage-kpi-delta is-up">↑ 18% vs prior period</p>
             </div>
             <span className="usage-kpi-icon tone-blue" aria-hidden>
-              📄
+              ≡
             </span>
           </div>
           <div className="usage-kpi-footer" aria-hidden />
@@ -473,7 +473,7 @@ export function UsagePage() {
                   aria-hidden
                 >
                   {event.category === "llm"
-                    ? "📄"
+                    ? "≡"
                     : event.category === "seo"
                       ? "⌕"
                       : "◈"}
