@@ -211,6 +211,7 @@ export function CalendarPage() {
       return;
     }
 
+    const statusPatch = blogStatusPatch(newStatus);
     const created = addBlog({
       clientId: client.id,
       title: pinTitle,
@@ -237,7 +238,8 @@ export function CalendarPage() {
       seoTitle: pinTitle.slice(0, 60),
       seoMeta: `Scheduled pin for ${client.name}`,
       qualityChecks: defaultQualityChecks(),
-      ...blogStatusPatch(newStatus),
+      status: statusPatch.status,
+      articlePhase: statusPatch.articlePhase,
       calendarDate,
       calendarPinned: true,
       contentType: "SEO blog post",
