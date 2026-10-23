@@ -231,7 +231,6 @@ export function CalendarPage() {
       lede: "",
       closing: "",
       versions: [],
-      articlePhase: "draft",
       generationToken: 1,
       outlineDirtyAfterDraft: false,
       targetWords: 800,
