@@ -6,8 +6,9 @@ import {
   timingLabel,
   type CalendarTiming,
 } from "./calendar";
+import { blogContentWordCount } from "../format";
 
-export type DeadlineKind = "draft" | "review" | "publish";
+export type DeadlineKind = "draft" | "in_review" | "approved";
 
 export interface ContentDeadline {
   id: string;
@@ -18,6 +19,7 @@ export interface ContentDeadline {
   title: string;
   topic: string;
   toneName: string;
+  /** Actual article word count (same basis as Review). */
   targetWords: number;
   status: DraftStatus;
   timing: CalendarTiming;
@@ -78,15 +80,13 @@ function addDays(dateKey: string, days: number): string {
 }
 
 function deadlineKind(status: DraftStatus): DeadlineKind {
-  if (status === "approved") return "publish";
-  if (status === "in_review") return "review";
-  return "draft";
+  return status;
 }
 
 function kindLabel(kind: DeadlineKind): string {
-  if (kind === "publish") return "Publish / handoff";
-  if (kind === "review") return "Internal review";
-  return "Draft due";
+  if (kind === "approved") return "Approved";
+  if (kind === "in_review") return "In Review";
+  return "Draft";
 }
 
 export function buildContentDeadlines(
@@ -113,7 +113,7 @@ export function buildContentDeadlines(
         title: blog.title,
         topic: blog.topic || blog.title,
         toneName: blog.toneName || "-",
-        targetWords: blog.targetWords || 0,
+        targetWords: blogContentWordCount(blog),
         status: blog.status,
         timing,
         timingLabel: timingLabel(timing),

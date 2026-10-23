@@ -102,10 +102,10 @@ export function ClientHubPage() {
     const inReview =
       clientBlogs.filter((b) => b.status === "in_review").length +
       clientDrafts.filter((d) => d.status === "in_review").length;
-    const published =
+    const approved =
       clientBlogs.filter((b) => b.status === "approved").length +
       clientDrafts.filter((d) => d.status === "approved").length;
-    return { draft, inReview, published };
+    return { draft, inReview, approved };
   }
 
   const clientCountLabel =
@@ -241,15 +241,15 @@ export function ClientHubPage() {
                     <span className="client-flash-stats">
                       <span>
                         <i className="stat-dot draft" aria-hidden />
-                        {counts.draft} drafts
+                        {counts.draft} draft
                       </span>
                       <span>
                         <i className="stat-dot review" aria-hidden />
                         {counts.inReview} in review
                       </span>
                       <span>
-                        <i className="stat-dot published" aria-hidden />
-                        {counts.published} published
+                        <i className="stat-dot approved" aria-hidden />
+                        {counts.approved} approved
                       </span>
                     </span>
                   </span>

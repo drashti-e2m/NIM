@@ -1,14 +1,15 @@
 import type { ReactNode } from "react";
 import type { DraftStatus, DriveKind } from "../types";
+import { statusLabel } from "../labels";
 
 export function DemoBadge({ children }: { children: ReactNode }) {
   return <span className="badge badge-demo">{children}</span>;
 }
 
 export function StatusBadge({ status }: { status: DraftStatus }) {
-  const label =
-    status === "in_review" ? "In Review" : status === "approved" ? "Approved" : "Draft";
-  return <span className={`badge status status-${status}`}>{label}</span>;
+  return (
+    <span className={`badge status status-${status}`}>{statusLabel(status)}</span>
+  );
 }
 
 export function SearchField({

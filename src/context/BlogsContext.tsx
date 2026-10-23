@@ -30,6 +30,12 @@ import {
 import { sectionsToBody } from "../services/blogGenerate";
 import { withCalendarSeeds } from "../data/calendarSeed";
 import { localDateKey } from "../services/calendar";
+import {
+  dedupeSyncedBlogs,
+  ensureCalendarFields,
+  todayPinDateIso,
+} from "../services/blogCalendarSync";
+import { articlePhaseForStatus } from "../services/blogStatus";
 
 type BlogPatch = Partial<
   Omit<BlogPost, "id" | "createdAt" | "updatedAt">
@@ -129,7 +135,7 @@ export function BlogsProvider({ children }: { children: ReactNode }) {
       },
       addBlog(input) {
         const now = new Date().toISOString();
-        const blog: BlogPost = {
+        const blog = ensureCalendarFields({
           ...input,
           targetAudience: input.targetAudience || "B2B buyers",
           primaryKeyword: input.primaryKeyword || input.keywords[0] || "",
@@ -143,34 +149,43 @@ export function BlogsProvider({ children }: { children: ReactNode }) {
           articlePhase: input.articlePhase ?? "outline",
           generationToken: input.generationToken ?? 0,
           outlineDirtyAfterDraft: input.outlineDirtyAfterDraft ?? false,
-          calendarDate: input.calendarDate ?? now,
+          calendarDate: input.calendarDate ?? todayPinDateIso(),
+          calendarPinned: input.calendarPinned ?? true,
           id: crypto.randomUUID(),
           createdAt: now,
           updatedAt: now,
-        };
-        setBlogs((current) => [blog, ...current]);
+        });
+        setBlogs((current) =>
+          dedupeSyncedBlogs([blog, ...current.map(ensureCalendarFields)]),
+        );
         logBlogCreated(blog);
         return blog;
       },
       upsertBlog(blog) {
         const now = new Date().toISOString();
-        const next: BlogPost = {
+        const next = ensureCalendarFields({
           ...blog,
           updatedAt: now,
-        };
+        });
         setBlogs((current) => {
           const exists = current.some((item) => item.id === blog.id);
           if (exists) {
             const prev = current.find((item) => item.id === blog.id);
-            const merged = { ...next, createdAt: prev?.createdAt ?? next.createdAt };
+            const merged = ensureCalendarFields({
+              ...next,
+              createdAt: prev?.createdAt ?? next.createdAt,
+            });
             if (prev) logBlogUpdated(prev, merged);
-            return current.map((item) =>
-              item.id === blog.id ? merged : item,
+            return dedupeSyncedBlogs(
+              current.map((item) => (item.id === blog.id ? merged : item)),
             );
           }
-          const created = { ...next, createdAt: blog.createdAt || now };
+          const created = ensureCalendarFields({
+            ...next,
+            createdAt: blog.createdAt || now,
+          });
           logBlogCreated(created);
-          return [created, ...current];
+          return dedupeSyncedBlogs([created, ...current]);
         });
         return next;
       },
@@ -179,27 +194,32 @@ export function BlogsProvider({ children }: { children: ReactNode }) {
         let previous: BlogPost | undefined;
         let nextList: BlogPost[] = [];
         setBlogs((current) => {
-          nextList = current.map((blog) => {
-            if (blog.id !== id) return blog;
-            previous = blog;
-            const next: BlogPost = {
-              ...blog,
-              ...patch,
-              updatedAt: new Date().toISOString(),
-              generationToken:
-                typeof patch.generationToken === "number"
-                  ? patch.generationToken
-                  : blog.generationToken + (options?.snapshot ? 1 : 0),
-            };
-            if (options?.snapshot) {
-              next.versions = [
-                snapshotFrom(blog, options.snapshotLabel ?? "Autosave"),
-                ...(blog.versions ?? []),
-              ].slice(0, 20);
-            }
-            updated = next;
-            return next;
-          });
+          nextList = dedupeSyncedBlogs(
+            current.map((blog) => {
+              if (blog.id !== id) return ensureCalendarFields(blog);
+              previous = blog;
+              const next = ensureCalendarFields({
+                ...blog,
+                ...patch,
+                updatedAt: new Date().toISOString(),
+                generationToken:
+                  typeof patch.generationToken === "number"
+                    ? patch.generationToken
+                    : blog.generationToken + (options?.snapshot ? 1 : 0),
+                calendarPinned:
+                  patch.calendarPinned ??
+                  (patch.calendarDate ? true : blog.calendarPinned),
+              });
+              if (options?.snapshot) {
+                next.versions = [
+                  snapshotFrom(blog, options.snapshotLabel ?? "Autosave"),
+                  ...(blog.versions ?? []),
+                ].slice(0, 20);
+              }
+              updated = next;
+              return next;
+            }),
+          );
           // Persist immediately so Review (and reloads) see the latest draft.
           writeBlogs(nextList);
           return nextList;
@@ -231,6 +251,7 @@ export function BlogsProvider({ children }: { children: ReactNode }) {
             const body =
               input.body ||
               (sections.length ? sectionsToBody(sections) : blog.body);
+            const nextStatus = input.status ?? blog.status;
             const next: BlogPost = {
               ...blog,
               title: input.title.trim() || blog.title,
@@ -238,18 +259,20 @@ export function BlogsProvider({ children }: { children: ReactNode }) {
               sections,
               seoTitle: input.seoTitle ?? blog.seoTitle,
               seoMeta: input.seoMeta ?? blog.seoMeta,
-              status: input.status ?? blog.status,
+              status: nextStatus,
               updatedAt: new Date().toISOString(),
               generationToken: blog.generationToken + 1,
               articlePhase: input.markReviewOutdated
                 ? "review_outdated"
-                : blog.articlePhase === "outline" ||
-                    blog.articlePhase === "outline_approved"
-                  ? "draft"
-                  : blog.articlePhase === "in_review" ||
-                      blog.articlePhase === "approved"
-                    ? "review_outdated"
-                    : blog.articlePhase,
+                : input.status
+                  ? articlePhaseForStatus(input.status)
+                  : blog.articlePhase === "outline" ||
+                      blog.articlePhase === "outline_approved"
+                    ? "draft"
+                    : blog.articlePhase === "in_review" ||
+                        blog.articlePhase === "approved"
+                      ? "review_outdated"
+                      : blog.articlePhase,
             };
             if (input.snapshot !== false) {
               next.versions = [

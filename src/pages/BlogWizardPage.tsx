@@ -28,6 +28,14 @@ import {
   type ArticleDraftHandle,
 } from "../components/ArticleDraftView";
 import { BlogCoverImagePicker } from "../components/BlogCoverImagePicker";
+import {
+  findReusableCalendarStub,
+  todayPinDateIso,
+} from "../services/blogCalendarSync";
+import {
+  resumeStepForBlog,
+  type WizardStepId,
+} from "../services/activityResume";
 
 function delay(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -111,7 +119,13 @@ export function BlogWizardPage() {
   const { getClient, setLastClientId, updateClient } = useClients();
   const client = getClient(clientId);
   usePageTitle(client ? `Generate Blog · ${client.name}` : "Generate Blog");
-  const { addBlog, updateBlog, approveOutlineForArticle, getBlog } = useBlogs();
+  const {
+    addBlog,
+    updateBlog,
+    approveOutlineForArticle,
+    getBlog,
+    blogsForClient,
+  } = useBlogs();
   const { tones, getTone } = useTones();
   const draftRef = useRef<ArticleDraftHandle>(null);
 
@@ -234,7 +248,7 @@ export function BlogWizardPage() {
 
   useEffect(() => {
     const resumeId = searchParams.get("article");
-    const resumeStep = searchParams.get("step");
+    const resumeStep = searchParams.get("step") as WizardStepId | null;
     if (!resumeId || !clientId) return;
     const existing = getBlog(resumeId);
     if (!existing || existing.clientId !== clientId) return;
@@ -252,11 +266,16 @@ export function BlogWizardPage() {
       setStructuredOutline(existing.approvedOutline);
       setOutlineApproved(Boolean(existing.approvedOutline.approved));
     }
-    if (resumeStep === "blog" || existing.sections?.length) {
-      setStep("blog");
-    } else if (existing.approvedOutline) {
-      setStep("outline");
-    }
+    const allowed: WizardStepId[] = [
+      "topic",
+      "keywords",
+      "research",
+      "outline",
+      "blog",
+    ];
+    const fromQuery =
+      resumeStep && allowed.includes(resumeStep) ? resumeStep : null;
+    setStep(fromQuery || resumeStepForBlog(existing));
     setSearchParams({}, { replace: true });
     // Resume once from deep link
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -369,9 +388,9 @@ export function BlogWizardPage() {
     setContextFileIds((current) =>
       current.includes(id) ? current.filter((item) => item !== id) : [...current, id],
     );
+    // Invalidate suggestions only — keep the chosen topic so progress isn't lost.
     setPickedSuggestionId(null);
     setTopicSuggestions([]);
-    setTopic("");
   }
 
   function addReferenceUrl() {
@@ -391,16 +410,14 @@ export function BlogWizardPage() {
     }
     setReferenceUrls((current) => [...current, normalized]);
     setUrlDraft("");
-    setTopicSuggestions([]);
     setPickedSuggestionId(null);
-    setTopic("");
+    setTopicSuggestions([]);
   }
 
   function removeReferenceUrl(url: string) {
     setReferenceUrls((current) => current.filter((item) => item !== url));
-    setTopicSuggestions([]);
     setPickedSuggestionId(null);
-    setTopic("");
+    setTopicSuggestions([]);
   }
 
   async function handleSuggestTopics() {
@@ -412,7 +429,7 @@ export function BlogWizardPage() {
     }
     setSuggestingTopics(true);
     setPickedSuggestionId(null);
-    setTopic("");
+    // Don't clear an existing topic — user may be regenerating suggestions.
     await delay(450);
 
     const files = contextFileIds
@@ -461,15 +478,16 @@ export function BlogWizardPage() {
   function applyMode(next: TopicMode) {
     if (next === mode) return;
     setMode(next);
-    setContextFileIds([]);
-    setBriefFileId("");
-    setReferenceUrls([]);
+    // Keep topic / notes / instructions when switching modes so going back
+    // from Outline → Topic does not wipe work in progress.
     setUrlDraft("");
     setTopicSuggestions([]);
     setPickedSuggestionId(null);
-    setTopic("");
-    setIdeaNotes("");
-    setExtraInstructions("");
+    if (next === "describe") {
+      // Discover-only pick state is cleared above; keep the written topic.
+      return;
+    }
+    // Discover mode: keep files/URLs the user already chose; don't blank topic.
   }
 
   function pickSuggestion(id: string, title: string) {
@@ -777,6 +795,13 @@ export function BlogWizardPage() {
       setPrimaryKeyword(nextKeywords[0]);
       setSecondaryKeywords(nextKeywords.slice(1));
     }
+    persistInProgressArticle();
+    // Returning from a later step — keep existing research instead of wiping it.
+    if (researchPack && research.trim()) {
+      setStep("research");
+      setNotice("");
+      return;
+    }
     setResearching(true);
     setNotice("");
     setStep("research");
@@ -924,6 +949,12 @@ export function BlogWizardPage() {
     setResearchApproved(true);
     setError("");
     setNotice("");
+    // Returning from Outline → keep the outline the user already edited.
+    if (structuredOutline && structuredOutline.sections.length > 0) {
+      ensureArticle(structuredOutline);
+      setStep("outline");
+      return;
+    }
     const outline = buildStructuredOutline({
       topic: topic.trim() || autoTopicFor(activeClient),
       audience: audience.trim() || "B2B buyers",
@@ -938,34 +969,84 @@ export function BlogWizardPage() {
     setStep("outline");
   }
 
-  function ensureArticle(outline: ApprovedOutline): string {
-    if (articleId) {
-      updateBlog(articleId, {
-        title: outline.title,
-        topic: topic.trim() || outline.title,
-        targetAudience: audience.trim() || "B2B buyers",
-        ideaNotes,
-        keywords,
-        primaryKeyword: keywords[0] ?? "",
-        secondaryKeywords: keywords.slice(1),
-        research,
-        outline: outlineToPlainText(outline),
-        approvedOutline: outline,
-        toneId: tone?.id ?? toneId,
-        toneName: tone?.name ?? toneId,
-        topicMode: mode,
-        targetWords: words,
-        articlePhase: outline.approved ? "outline_approved" : "outline",
-      });
-      return articleId;
+  /**
+   * Save mid-wizard progress so Activity shows this blog and click can resume.
+   * Called when leaving a step or unmounting with work in progress.
+   */
+  function persistInProgressArticle(): string | null {
+    const title =
+      topic.trim() ||
+      ideaNotes.trim().slice(0, 80) ||
+      `${activeClient.name} draft`;
+    if (!topic.trim() && !ideaNotes.trim() && !primaryKeyword.trim() && !articleId) {
+      return null;
     }
-    const created = addBlog({
-      clientId: activeClient.id,
-      title: outline.title,
-      body: "",
+    const syncedFields = {
+      title,
+      topic: topic.trim() || title,
+      targetAudience: audience.trim() || "B2B buyers",
+      ideaNotes,
+      keywords,
+      primaryKeyword: primaryKeyword.trim() || keywords[0] || "",
+      secondaryKeywords:
+        secondaryKeywords.length > 0 ? secondaryKeywords : keywords.slice(1),
+      research,
+      outline: structuredOutline
+        ? outlineToPlainText(structuredOutline)
+        : "",
+      approvedOutline: structuredOutline,
       toneId: tone?.id ?? toneId,
       toneName: tone?.name ?? toneId,
       topicMode: mode,
+      targetWords: words,
+      articlePhase: "outline" as const,
+      calendarPinned: true as const,
+      generationStatus: "In progress" as const,
+      status: "draft" as const,
+      seoTitle: title.slice(0, 60),
+    };
+
+    if (articleId) {
+      updateBlog(articleId, syncedFields);
+      return articleId;
+    }
+
+    const reusable = findReusableCalendarStub(
+      blogsForClient(activeClient.id),
+      activeClient.id,
+    );
+    if (reusable) {
+      updateBlog(reusable.id, {
+        ...syncedFields,
+        calendarDate: reusable.calendarDate,
+        body: reusable.body || "",
+        ideaNotes: ideaNotes || reusable.ideaNotes,
+      });
+      setArticleId(reusable.id);
+      return reusable.id;
+    }
+
+    const created = addBlog({
+      clientId: activeClient.id,
+      body: "",
+      sections: [],
+      lede: "",
+      closing: "",
+      versions: [],
+      generationToken: 0,
+      outlineDirtyAfterDraft: false,
+      seoMeta: "",
+      qualityChecks: defaultQualityChecks(),
+      calendarDate: todayPinDateIso(),
+      ...syncedFields,
+    });
+    setArticleId(created.id);
+    return created.id;
+  }
+
+  function ensureArticle(outline: ApprovedOutline): string {
+    const syncedFields = {
+      title: outline.title,
       topic: topic.trim() || outline.title,
       targetAudience: audience.trim() || "B2B buyers",
       ideaNotes,
@@ -975,18 +1056,54 @@ export function BlogWizardPage() {
       research,
       outline: outlineToPlainText(outline),
       approvedOutline: outline,
+      toneId: tone?.id ?? toneId,
+      toneName: tone?.name ?? toneId,
+      topicMode: mode,
+      targetWords: words,
+      articlePhase: outline.approved
+        ? ("outline_approved" as const)
+        : ("outline" as const),
+      calendarPinned: true as const,
+      generationStatus: "In progress" as const,
+    };
+
+    if (articleId) {
+      updateBlog(articleId, syncedFields);
+      return articleId;
+    }
+
+    // Reuse a calendar pin for this client so Generate does not create a second blog.
+    const reusable = findReusableCalendarStub(
+      blogsForClient(activeClient.id),
+      activeClient.id,
+    );
+    if (reusable) {
+      updateBlog(reusable.id, {
+        ...syncedFields,
+        seoTitle: outline.title.slice(0, 60),
+        calendarDate: reusable.calendarDate,
+        body: reusable.body || "",
+        ideaNotes: ideaNotes || reusable.ideaNotes,
+      });
+      setArticleId(reusable.id);
+      return reusable.id;
+    }
+
+    const created = addBlog({
+      clientId: activeClient.id,
+      body: "",
       sections: [],
       lede: "",
       closing: "",
       versions: [],
-      articlePhase: outline.approved ? "outline_approved" : "outline",
       generationToken: 0,
       outlineDirtyAfterDraft: false,
-      targetWords: words,
       seoTitle: outline.title.slice(0, 60),
       seoMeta: "",
       qualityChecks: defaultQualityChecks(),
       status: "draft",
+      calendarDate: todayPinDateIso(),
+      ...syncedFields,
     });
     setArticleId(created.id);
     return created.id;
@@ -1128,7 +1245,10 @@ export function BlogWizardPage() {
       }
       if (mode === "describe") {
         const hasIdea =
-          topic.trim() || ideaNotes.trim() || briefFileId || extraInstructions.trim();
+          topic.trim() ||
+          ideaNotes.trim() ||
+          briefFileId ||
+          extraInstructions.trim();
         if (!hasIdea) {
           setError(
             "Add a topic, coverage notes, an existing brief file, or additional instructions.",
@@ -1137,17 +1257,20 @@ export function BlogWizardPage() {
         }
       }
       if (mode === "auto") {
-        if (contextFileIds.length === 0 && referenceUrls.length === 0) {
-          setError("Select client files and/or add at least one reference URL.");
-          return;
-        }
-        if (topicSuggestions.length === 0) {
-          setError("Click Suggest topics, then select one topic to continue.");
-          return;
-        }
-        if (!topic.trim() || !pickedSuggestionId) {
-          setError("Select one suggested topic to continue.");
-          return;
+        // If a topic is already set (e.g. returned from Outline), continue.
+        if (!topic.trim()) {
+          if (contextFileIds.length === 0 && referenceUrls.length === 0) {
+            setError("Select client files and/or add at least one reference URL.");
+            return;
+          }
+          if (topicSuggestions.length === 0) {
+            setError("Click Suggest topics, then select one topic to continue.");
+            return;
+          }
+          if (!pickedSuggestionId) {
+            setError("Select one suggested topic to continue.");
+            return;
+          }
         }
       }
       if (!primaryKeyword.trim()) {
@@ -1166,6 +1289,7 @@ export function BlogWizardPage() {
       setSelectedIdeaIds([]);
       setIntentFilter("All");
       setNotice("");
+      persistInProgressArticle();
       setStep("keywords");
       return;
     }
@@ -1241,6 +1365,11 @@ export function BlogWizardPage() {
     const fullBody = [draft.lede, draft.body, draft.closing, draft.cta]
       .filter(Boolean)
       .join("\n\n");
+    const existing = getBlog(id);
+    const keepStatus =
+      existing?.status === "approved" || existing?.status === "in_review"
+        ? existing.status
+        : "draft";
     updateBlog(
       id,
       {
@@ -1252,8 +1381,13 @@ export function BlogWizardPage() {
         seoTitle: seo.seoTitle,
         seoMeta: seo.seoMeta,
         qualityChecks: defaultQualityChecks(),
-        status: "draft",
-        articlePhase: "draft",
+        status: keepStatus,
+        articlePhase:
+          keepStatus === "approved"
+            ? "approved"
+            : keepStatus === "in_review"
+              ? "in_review"
+              : "draft",
         outlineDirtyAfterDraft: false,
         approvedOutline: outline,
         outline: outlineToPlainText(outline),
@@ -1295,10 +1429,49 @@ export function BlogWizardPage() {
     setNotice("");
   }
 
+  function restoreTopicFromArticle() {
+    if (!articleId) return;
+    const existing = getBlog(articleId);
+    if (!existing) return;
+    if (!topic.trim() && (existing.topic || existing.title)) {
+      setTopic(existing.topic || existing.title);
+    }
+    if (!ideaNotes.trim() && existing.ideaNotes) {
+      setIdeaNotes(existing.ideaNotes);
+    }
+    if (!audience.trim() && existing.targetAudience) {
+      setAudience(existing.targetAudience);
+    }
+    if (!toneId.trim() && existing.toneId) {
+      setToneId(existing.toneId);
+    }
+    if (!primaryKeyword.trim() && existing.primaryKeyword) {
+      setPrimaryKeyword(existing.primaryKeyword);
+    }
+    if (secondaryKeywords.length === 0 && existing.secondaryKeywords?.length) {
+      setSecondaryKeywords(existing.secondaryKeywords);
+    }
+    if (!research.trim() && existing.research) {
+      setResearch(existing.research);
+    }
+    if (!structuredOutline && existing.approvedOutline) {
+      setStructuredOutline(existing.approvedOutline);
+      setOutlineApproved(Boolean(existing.approvedOutline.approved));
+    }
+  }
+
+  function goToStep(next: StepId) {
+    setError("");
+    if (next === "topic") {
+      restoreTopicFromArticle();
+    }
+    setStep(next);
+  }
+
   function goBack() {
     setError("");
     const index = steps.findIndex((item) => item.id === step);
-    if (index > 0) setStep(steps[index - 1].id);
+    if (index > 0) goToStep(steps[index - 1].id);
   }
 
   return (
@@ -1327,7 +1500,7 @@ export function BlogWizardPage() {
                 .filter(Boolean)
                 .join(" ")}
               disabled={index > stepIndex}
-              onClick={() => index <= stepIndex && setStep(item.id)}
+              onClick={() => index <= stepIndex && goToStep(item.id)}
             >
               <span>{index + 1}</span>
               {item.label}

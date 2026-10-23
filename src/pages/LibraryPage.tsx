@@ -4,11 +4,12 @@ import { useDrafts } from "../context/DraftsContext";
 import { useBlogs } from "../context/BlogsContext";
 import { useClients } from "../context/ClientsContext";
 import { usePageTitle } from "../usePageTitle";
-import { formatDate } from "../format";
-import { statusLabel } from "../labels";
+import { blogContentWordCount, formatDate } from "../format";
+import { STATUS_OPTIONS, statusLabel } from "../labels";
 import type { DraftStatus } from "../types";
 import { EmptyState, SearchField } from "../components/ui";
 import { DropdownSelect } from "../components/DropdownSelect";
+import { blogStatusPatch } from "../services/blogStatus";
 
 type LibraryItem = {
   id: string;
@@ -43,7 +44,7 @@ export function LibraryPage() {
       status: blog.status,
       updatedAt: blog.updatedAt,
       tone: blog.toneName || "-",
-      words: `${blog.targetWords || 0} words`,
+      words: `${blogContentWordCount(blog).toLocaleString()} words`,
       href: `/clients/${blog.clientId}/blog/${blog.id}`,
     }));
     const draftItems: LibraryItem[] = drafts.map((draft) => ({
@@ -68,10 +69,14 @@ export function LibraryPage() {
     return items
       .filter((item) => {
         if (status === "all") return true;
-        if (status === "progress") {
-          return item.status === "draft" || item.status === "in_review";
+        if (
+          status === "draft" ||
+          status === "in_review" ||
+          status === "approved"
+        ) {
+          return item.status === status;
         }
-        return item.status === status;
+        return true;
       })
       .filter((item) =>
         clientFilter === "all" ? true : item.clientId === clientFilter,
@@ -96,7 +101,7 @@ export function LibraryPage() {
 
   function setStatus(item: LibraryItem, next: DraftStatus) {
     if (item.kind === "blog") {
-      updateBlog(item.id.replace(/^blog-/, ""), { status: next });
+      updateBlog(item.id.replace(/^blog-/, ""), blogStatusPatch(next));
       return;
     }
     updateDraft(item.id.replace(/^draft-/, ""), { status: next });
@@ -203,11 +208,10 @@ export function LibraryPage() {
                   labelHidden
                   selectClassName={`status-select status-${item.status}`}
                   value={item.status}
-                  options={[
-                    { value: "draft", label: "Draft" },
-                    { value: "in_review", label: "In Review" },
-                    { value: "approved", label: "Approved" },
-                  ]}
+                  options={STATUS_OPTIONS.map((option) => ({
+                    value: option.id,
+                    label: option.label,
+                  }))}
                   onChange={(next) => setStatus(item, next as DraftStatus)}
                 />
               </li>

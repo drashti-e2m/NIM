@@ -74,6 +74,32 @@ export function articlePlainText(parts: {
   return chunks.join("\n\n");
 }
 
+/** Actual article word count — same basis as Review (lede + sections + closing). */
+export function blogContentWordCount(blog: {
+  title?: string;
+  lede?: string;
+  body?: string;
+  closing?: string;
+  sections?: Array<{ order: number; heading: string; body: string }>;
+  approvedOutline?: { cta?: string } | null;
+  targetWords?: number;
+}): number {
+  const sorted = blog.sections?.length
+    ? [...blog.sections].sort((a, b) => a.order - b.order)
+    : undefined;
+  const count = wordCount(
+    articlePlainText({
+      title: blog.title,
+      lede: blog.lede,
+      sections: sorted,
+      body: blog.body,
+      closing: blog.closing,
+      cta: blog.approvedOutline?.cta,
+    }),
+  );
+  return count > 0 ? count : blog.targetWords || 0;
+}
+
 export function excerpt(text: string, max = 140): string {
   const flat = text.replace(/\s+/g, " ").trim();
   if (flat.length <= max) return flat;

@@ -4,16 +4,16 @@ import { useClients } from "../context/ClientsContext";
 import { useBlogs } from "../context/BlogsContext";
 import { usePageTitle } from "../usePageTitle";
 import {
-  articlePlainText,
+  blogContentWordCount,
   formatDate,
   looksLikeHtml,
   stripHtml,
-  wordCount,
 } from "../format";
 import { sectionsToBody } from "../services/blogGenerate";
 import { getDriveItem } from "../services/drive";
 import type { DraftStatus } from "../types";
 import { EmptyState, StatusBadge } from "../components/ui";
+import { blogStatusPatch } from "../services/blogStatus";
 
 function paragraphsFromBody(body: string): string[] {
   return body
@@ -100,11 +100,12 @@ export function BlogReaderPage() {
 
   useEffect(() => {
     if (!matched) return;
-    if (matched.articlePhase === "draft" || matched.articlePhase === "review_outdated") {
-      updateBlog(matched.id, {
-        articlePhase: "in_review",
-        status: matched.status === "approved" ? "approved" : "in_review",
-      });
+    if (
+      (matched.articlePhase === "draft" ||
+        matched.articlePhase === "review_outdated") &&
+      matched.status === "draft"
+    ) {
+      updateBlog(matched.id, blogStatusPatch("in_review"));
     }
     // Intentionally only when opening this article id
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -125,22 +126,10 @@ export function BlogReaderPage() {
     return matched.body;
   }, [matched]);
 
-  const words = useMemo(() => {
-    if (!matched) return 0;
-    const sorted = matched.sections?.length
-      ? [...matched.sections].sort((a, b) => a.order - b.order)
-      : undefined;
-    return wordCount(
-      articlePlainText({
-        title: matched.title,
-        lede: matched.lede,
-        sections: sorted,
-        body: matched.body,
-        closing: matched.closing,
-        cta: matched.approvedOutline?.cta,
-      }),
-    );
-  }, [matched]);
+  const words = useMemo(
+    () => (matched ? blogContentWordCount(matched) : 0),
+    [matched],
+  );
 
   const readMinutes = Math.max(1, Math.round(words / 220));
 
@@ -176,10 +165,7 @@ export function BlogReaderPage() {
       : undefined;
 
   function setStatus(status: DraftStatus) {
-    updateBlog(activeBlog.id, {
-      status,
-      articlePhase: status === "approved" ? "approved" : "in_review",
-    });
+    updateBlog(activeBlog.id, blogStatusPatch(status));
   }
 
   function handleDelete() {
@@ -211,21 +197,21 @@ export function BlogReaderPage() {
         </div>
         <div className="article-toolbar-actions">
           <Link
-            className="btn btn-primary btn-sm review-action-btn"
+            className="btn btn-secondary btn-sm review-action-btn"
             to={`/clients/${activeClient.id}/generate?article=${activeBlog.id}&step=blog`}
           >
             Edit
           </Link>
           <button
             type="button"
-            className="btn btn-primary btn-sm review-action-btn"
+            className="btn btn-secondary btn-sm review-action-btn"
             onClick={exportExact}
           >
             Export
           </button>
           <button
             type="button"
-            className="btn btn-primary btn-sm review-action-btn"
+            className="btn btn-secondary btn-sm review-action-btn"
             onClick={handleDelete}
           >
             Delete

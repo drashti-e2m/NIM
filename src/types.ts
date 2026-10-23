@@ -151,6 +151,8 @@ export interface ActivityItem {
   title: string;
   detail: string;
   at: string;
+  /** Calendar / due date for the blog when the event was logged (ISO). */
+  dueDate?: string;
 }
 
 export interface QualityCheckItem {
@@ -273,6 +275,11 @@ export interface BlogPost {
   updatedAt: string;
   /** Date this article appears on the Content Calendar (past / today / upcoming). */
   calendarDate?: string;
+  /**
+   * When true, calendar seed re-anchoring must not overwrite calendarDate.
+   * Set whenever the user places/saves a pin on the Content Calendar.
+   */
+  calendarPinned?: boolean;
   /** @deprecated Legacy flag; ignored by UI. */
   demoMode?: boolean;
   contentType?: string;

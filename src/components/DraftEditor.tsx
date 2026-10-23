@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Draft, DraftStatus } from "../types";
-import { stageLabel } from "../labels";
+import { STATUS_OPTIONS, stageLabel } from "../labels";
 import { wordCount } from "../format";
 import { DemoBadge, StatusBadge } from "./ui";
 import { DropdownSelect } from "./DropdownSelect";
@@ -80,11 +80,10 @@ export function DraftEditor(props: DraftEditorProps) {
           className="field"
           label="Status"
           value={props.status}
-          options={[
-            { value: "draft", label: "Draft" },
-            { value: "in_review", label: "In Review" },
-            { value: "approved", label: "Approved" },
-          ]}
+          options={STATUS_OPTIONS.map((option) => ({
+            value: option.id,
+            label: option.label,
+          }))}
           onChange={(next) => props.onStatus(next as DraftStatus)}
         />
         <Meta label="Stage" value={stageLabel(props.stage)} />

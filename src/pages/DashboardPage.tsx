@@ -4,16 +4,16 @@ import { useClients } from "../context/ClientsContext";
 import { useBlogs } from "../context/BlogsContext";
 import { DeadlineBoardPanel } from "../components/DeadlineBoard";
 import { usePageTitle } from "../usePageTitle";
+import { statusLabel } from "../labels";
 
 export function DashboardPage() {
   usePageTitle("Home");
   const { clients } = useClients();
   const { blogs } = useBlogs();
 
-  const draftBlogs = blogs.filter(
-    (b) => b.status === "draft" || b.status === "in_review",
-  );
-  const approvedBlogs = blogs.filter((b) => b.status === "approved");
+  const draftCount = blogs.filter((b) => b.status === "draft").length;
+  const inReviewCount = blogs.filter((b) => b.status === "in_review").length;
+  const approvedCount = blogs.filter((b) => b.status === "approved").length;
 
   const greeting = useMemo(() => {
     const hour = new Date().getHours();
@@ -44,31 +44,29 @@ export function DashboardPage() {
       </header>
 
       <section className="dash-kpis" aria-label="Key metrics">
-        <Link className="kpi-card" to="/library">
+        <Link className="kpi-card" to="/library?status=draft">
           <div className="kpi-top">
-            <span className="kpi-ico">▤</span>
-            <span className="kpi-label">Total Blogs</span>
+            <span className="kpi-ico">✎</span>
+            <span className="kpi-label">{statusLabel("draft")}</span>
           </div>
-          <strong className="kpi-value">{blogs.length}</strong>
-          <span className="kpi-trend">All generated drafts</span>
+          <strong className="kpi-value">{draftCount}</strong>
+          <span className="kpi-trend">{blogs.length} total blogs</span>
         </Link>
-        <Link className="kpi-card" to="/library?status=progress">
+        <Link className="kpi-card" to="/library?status=in_review">
           <div className="kpi-top">
             <span className="kpi-ico">◷</span>
-            <span className="kpi-label">Drafts in Progress</span>
+            <span className="kpi-label">{statusLabel("in_review")}</span>
           </div>
-          <strong className="kpi-value">{draftBlogs.length}</strong>
-          <span className="kpi-trend">
-            {blogs.filter((b) => b.status === "in_review").length} in review
-          </span>
+          <strong className="kpi-value">{inReviewCount}</strong>
+          <span className="kpi-trend">Awaiting review</span>
         </Link>
         <Link className="kpi-card" to="/library?status=approved">
           <div className="kpi-top">
             <span className="kpi-ico">✓</span>
-            <span className="kpi-label">Approved</span>
+            <span className="kpi-label">{statusLabel("approved")}</span>
           </div>
-          <strong className="kpi-value">{approvedBlogs.length}</strong>
-          <span className="kpi-trend">Ready to publish</span>
+          <strong className="kpi-value">{approvedCount}</strong>
+          <span className="kpi-trend">Ready for handoff</span>
         </Link>
         <Link className="kpi-card" to="/clients">
           <div className="kpi-top">

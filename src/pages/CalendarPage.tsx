@@ -9,13 +9,17 @@ import {
   type CalendarEvent,
   type CalendarTiming,
 } from "../services/calendar";
+import {
+  findBlogPinForDay,
+  pinDateIso,
+} from "../services/blogCalendarSync";
 import { defaultQualityChecks } from "../services/blogGenerate";
 import { usePageTitle } from "../usePageTitle";
-import { statusLabel } from "../labels";
-import { EmptyState } from "../components/ui";
+import { STATUS_OPTIONS } from "../labels";
 import { DropdownSelect } from "../components/DropdownSelect";
 import { useLocalTodayKey } from "../hooks/useLocalTodayKey";
 import type { DraftStatus } from "../types";
+import { blogStatusPatch } from "../services/blogStatus";
 
 export function CalendarPage() {
   usePageTitle("Content Calendar");
@@ -33,26 +37,41 @@ export function CalendarPage() {
   const [editTitle, setEditTitle] = useState("");
   const [editDate, setEditDate] = useState("");
   const [editStatus, setEditStatus] = useState<DraftStatus>("draft");
+  const [editContentStatus, setEditContentStatus] = useState<"sorted" | "to_sort">(
+    "to_sort",
+  );
+  const [editNotes, setEditNotes] = useState("");
+  const [addingPin, setAddingPin] = useState(false);
   const [newClientId, setNewClientId] = useState("");
   const [newTitle, setNewTitle] = useState("");
   const [newDate, setNewDate] = useState(() => toDateInputValue(new Date()));
+  const [newStatus, setNewStatus] = useState<DraftStatus>("draft");
+  const [newContentStatus, setNewContentStatus] = useState<"sorted" | "to_sort">(
+    "to_sort",
+  );
+  const [newNotes, setNewNotes] = useState("");
   const [notice, setNotice] = useState("");
+
+  function contentStatusFromBlog(blog: {
+    generationStatus?: string;
+    sections?: unknown[];
+    body?: string;
+    lede?: string;
+  }): "sorted" | "to_sort" {
+    const raw = (blog.generationStatus || "").toLowerCase();
+    if (raw === "sorted" || raw === "to sort" || raw === "to_sort") {
+      return raw === "sorted" ? "sorted" : "to_sort";
+    }
+    const hasContent =
+      (blog.sections?.length ?? 0) > 0 ||
+      (blog.lede?.trim().length ?? 0) > 40 ||
+      (blog.body?.length ?? 0) >= 500;
+    return hasContent ? "sorted" : "to_sort";
+  }
 
   useEffect(() => {
     setNewDate(toDateInputValue(now));
   }, [todayKey, now]);
-
-  const grid = useMemo(
-    () =>
-      buildMonthGrid({
-        year: cursor.year,
-        month: cursor.month,
-        blogs,
-        clients,
-        now,
-      }),
-    [cursor, blogs, clients, now],
-  );
 
   const selectedBlog = selectedId ? getBlog(selectedId) : undefined;
   const selectedClient = selectedBlog
@@ -60,11 +79,35 @@ export function CalendarPage() {
     : undefined;
   const addClient = clients.find((client) => client.id === newClientId);
 
+  // While a pin is selected, preview it on editDate so placement is visible
+  // before Save. Deselect without Save restores the stored calendarDate.
+  const displayBlogs = useMemo(() => {
+    if (!selectedId || !editDate) return blogs;
+    const iso = dateInputToIso(editDate);
+    return blogs.map((blog) =>
+      blog.id === selectedId ? { ...blog, calendarDate: iso } : blog,
+    );
+  }, [blogs, selectedId, editDate]);
+
+  const grid = useMemo(
+    () =>
+      buildMonthGrid({
+        year: cursor.year,
+        month: cursor.month,
+        blogs: displayBlogs,
+        clients,
+        now,
+      }),
+    [cursor, displayBlogs, clients, now],
+  );
+
   useEffect(() => {
     if (!selectedBlog) return;
     setEditTitle(selectedBlog.title);
     setEditDate(toDateInputValue(selectedBlog.calendarDate || selectedBlog.updatedAt));
     setEditStatus(selectedBlog.status);
+    setEditContentStatus(contentStatusFromBlog(selectedBlog));
+    setEditNotes(selectedBlog.ideaNotes || "");
   }, [selectedBlog]);
 
   useEffect(() => {
@@ -88,27 +131,40 @@ export function CalendarPage() {
   }
 
   function selectEvent(event: CalendarEvent) {
-    setSelectedId(event.blogId);
+    setAddingPin(false);
+    setSelectedId((current) =>
+      current === event.blogId ? null : event.blogId,
+    );
+    setNotice("");
+  }
+
+  function startAddPin(dateKey?: string) {
+    setSelectedId(null);
+    setAddingPin(true);
+    setNewTitle("");
+    setNewDate(dateKey || toDateInputValue(now));
+    setNewStatus("draft");
+    setNewContentStatus("to_sort");
+    setNewNotes("");
+    if (clientFilter !== "all") setNewClientId(clientFilter);
+    setNotice("");
+  }
+
+  function cancelAddPin() {
+    setAddingPin(false);
     setNotice("");
   }
 
   function pinToDate(dateKey: string) {
     if (!dateKey) return;
     if (selectedId) {
-      updateBlog(selectedId, {
-        calendarDate: dateInputToIso(dateKey),
-      });
+      // Pending placement only — persist on Save so Deselect cannot move it.
       setEditDate(dateKey);
-      setNotice(`Moved pin to ${dateKey}.`);
+      setNotice(`Pin placed on ${dateKey}. Click Save pin to keep it there.`);
       return;
     }
-    // No pin selected - add a new client pin on that day
-    const clientId = newClientId || (clientFilter !== "all" ? clientFilter : "");
-    if (!clientId) {
-      setNotice("Search and pick a client first, then click a day.");
-      return;
-    }
-    createPin(clientId, dateKey);
+    // Calendar only until Add pin — if already adding, just set the date.
+    if (addingPin) setNewDate(dateKey);
   }
 
   function createPin(clientId: string, dateKey: string, title?: string) {
@@ -121,6 +177,40 @@ export function CalendarPage() {
       title?.trim() ||
       newTitle.trim() ||
       `${client.name} blog · ${dateKey}`;
+    const calendarDate = pinDateIso(dateKey);
+    const notes = newNotes.trim() || "Created from Content Calendar pin.";
+    const contentStatus =
+      newContentStatus === "sorted" ? "Sorted" : "To sort";
+
+    // Upsert: reuse the existing pin for this client+day so Library/Calendar stay synced.
+    const existing = findBlogPinForDay(
+      blogs,
+      client.id,
+      dateKey,
+      title?.trim() || newTitle.trim() || undefined,
+    );
+    if (existing) {
+      const patchTitle =
+        title?.trim() || newTitle.trim() ? pinTitle : existing.title;
+      updateBlog(existing.id, {
+        title: patchTitle,
+        topic: patchTitle,
+        calendarDate,
+        calendarPinned: true,
+        ideaNotes: notes,
+        generationStatus: contentStatus,
+        ...blogStatusPatch(newStatus),
+      });
+      setSelectedId(existing.id);
+      setAddingPin(false);
+      setNewTitle("");
+      setNewNotes("");
+      setNewDate(dateKey);
+      setNewClientId(client.id);
+      setNotice(`Synced existing ${client.name} pin on ${dateKey}.`);
+      return;
+    }
+
     const created = addBlog({
       clientId: client.id,
       title: pinTitle,
@@ -130,7 +220,7 @@ export function CalendarPage() {
       topicMode: "manual",
       topic: pinTitle,
       targetAudience: "B2B buyers",
-      ideaNotes: "Created from Content Calendar pin.",
+      ideaNotes: notes,
       keywords: ["content calendar", client.name.toLowerCase()],
       primaryKeyword: "content calendar",
       secondaryKeywords: [client.name.toLowerCase()],
@@ -148,13 +238,16 @@ export function CalendarPage() {
       seoTitle: pinTitle.slice(0, 60),
       seoMeta: `Scheduled pin for ${client.name}`,
       qualityChecks: defaultQualityChecks(),
-      status: "draft",
-      calendarDate: dateInputToIso(dateKey),
+      ...blogStatusPatch(newStatus),
+      calendarDate,
+      calendarPinned: true,
       contentType: "SEO blog post",
-      generationStatus: "Scheduled",
+      generationStatus: contentStatus,
     });
     setSelectedId(created.id);
+    setAddingPin(false);
     setNewTitle("");
+    setNewNotes("");
     setNewDate(dateKey);
     setNewClientId(client.id);
     setNotice(`Added ${client.name} pin on ${dateKey}.`);
@@ -167,6 +260,10 @@ export function CalendarPage() {
     }
     if (!newDate) {
       setNotice("Pick a date for the pin.");
+      return;
+    }
+    if (!newTitle.trim()) {
+      setNotice("Enter a blog name.");
       return;
     }
     createPin(newClientId, newDate, newTitle);
@@ -184,16 +281,13 @@ export function CalendarPage() {
     }
     updateBlog(selectedBlog.id, {
       title: editTitle.trim(),
-      status: editStatus,
+      ...blogStatusPatch(editStatus),
       calendarDate: dateInputToIso(editDate),
-      articlePhase:
-        editStatus === "approved"
-          ? "approved"
-          : editStatus === "in_review"
-            ? "in_review"
-            : "draft",
+      calendarPinned: true,
+      ideaNotes: editNotes.trim(),
+      generationStatus: editContentStatus === "sorted" ? "Sorted" : "To sort",
     });
-    setNotice("Pin saved.");
+    setNotice("Pin saved. It will stay on this date when deselected.");
   }
 
   function handleDeletePin() {
@@ -305,23 +399,38 @@ export function CalendarPage() {
         ))}
       </div>
 
-      <div className="cal-board">
+      <div
+        className={`cal-board${selectedBlog || addingPin ? " has-detail" : " cal-board-full"}`}
+      >
         <section className="dash-card cal-full">
           <div className="dash-card-head">
             <h2>{grid.label}</h2>
-            <span className="muted">
-              {monthCounts.past + monthCounts.today + monthCounts.future} pins
-              {clientFilter !== "all"
-                ? ` · ${clients.find((c) => c.id === clientFilter)?.name ?? ""}`
-                : ""}
-              {focus !== "all" ? ` · ${focus}` : ""}
-            </span>
+            <div className="cal-board-head-actions">
+              <span className="muted">
+                {monthCounts.past + monthCounts.today + monthCounts.future} pins
+                {clientFilter !== "all"
+                  ? ` · ${clients.find((c) => c.id === clientFilter)?.name ?? ""}`
+                  : ""}
+                {focus !== "all" ? ` · ${focus}` : ""}
+              </span>
+              {!addingPin && !selectedBlog ? (
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={() => startAddPin()}
+                >
+                  Add pin
+                </button>
+              ) : null}
+            </div>
           </div>
-          <p className="muted cal-board-hint">
-            {selectedId
-              ? "Click a day to move this pin."
-              : "Click a day to add a pin for the selected client, or use Add pin on the right."}
-          </p>
+          {selectedId || addingPin ? (
+            <p className="muted cal-board-hint">
+              {selectedId
+                ? "Click a day to place this pin, then Save pin to keep it there. Click the pin again to deselect."
+                : "Fill the pin details on the right, or click a day to set the pin date."}
+            </p>
+          ) : null}
           <div className="cal-preview cal-preview-lg">
             <div className="cal-grid" role="grid" aria-label={grid.label}>
               {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((d) => (
@@ -356,9 +465,10 @@ export function CalendarPage() {
                         <button
                           key={ev.id}
                           type="button"
-                          className={`cal-pin${selectedId === ev.blogId ? " selected" : ""}`}
+                          className={`cal-pin cal-pin-logo${selectedId === ev.blogId ? " selected" : ""}`}
                           style={{ ["--pin-color" as string]: ev.color }}
                           title={`${ev.name} · ${ev.title}`}
+                          aria-label={`${ev.name}: ${ev.title}`}
                           onClick={(event) => {
                             event.stopPropagation();
                             selectEvent(ev);
@@ -366,10 +476,6 @@ export function CalendarPage() {
                         >
                           <span className="cal-pin-mark" aria-hidden>
                             {ev.initials}
-                          </span>
-                          <span className="cal-pin-copy">
-                            <strong>{ev.short}</strong>
-                            <em>{ev.title}</em>
                           </span>
                         </button>
                       ))}
@@ -381,161 +487,212 @@ export function CalendarPage() {
           </div>
         </section>
 
-        <aside className="cal-detail dash-card" aria-label="Pin details">
-          {selectedBlog && selectedClient ? (
-            <>
-              <div className="cal-detail-head">
-                <span
-                  className="cal-detail-avatar"
-                  style={{ background: selectedClient.color }}
-                  aria-hidden
-                >
-                  {selectedClient.initials}
-                </span>
-                <div>
-                  <p className="eyebrow">Editable pin</p>
-                  <h2>{selectedClient.name}</h2>
-                </div>
+        {selectedBlog && selectedClient ? (
+          <aside className="cal-detail dash-card" aria-label="Pin details">
+            <div className="cal-detail-head">
+              <span
+                className="cal-detail-avatar"
+                style={{ background: selectedClient.color }}
+                aria-hidden
+              >
+                {selectedClient.initials}
+              </span>
+              <div>
+                <p className="eyebrow">{selectedClient.name}</p>
+                <h2>Pin details</h2>
               </div>
+            </div>
 
-              <label className="field">
-                <span className="field-label">Blog title</span>
-                <input
-                  value={editTitle}
-                  onChange={(event) => setEditTitle(event.target.value)}
-                />
-              </label>
-
-              <label className="field">
-                <span className="field-label">Pin date</span>
-                <input
-                  type="date"
-                  value={editDate}
-                  onChange={(event) => setEditDate(event.target.value)}
-                />
-              </label>
-
-              <DropdownSelect
-                className="field"
-                label="Status"
-                value={editStatus}
-                options={[
-                  { value: "draft", label: statusLabel("draft") },
-                  { value: "in_review", label: statusLabel("in_review") },
-                  { value: "approved", label: statusLabel("approved") },
-                ]}
-                onChange={(next) => setEditStatus(next as DraftStatus)}
+            <label className="field">
+              <span className="field-label">Blog name</span>
+              <input
+                value={editTitle}
+                onChange={(event) => setEditTitle(event.target.value)}
               />
+            </label>
 
-              {notice ? <p className="drive-upload-msg">{notice}</p> : null}
+            <label className="field">
+              <span className="field-label">Pin date</span>
+              <input
+                type="date"
+                value={editDate}
+                onChange={(event) => setEditDate(event.target.value)}
+              />
+            </label>
 
-              <div className="form-actions cal-detail-actions">
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  onClick={saveEdits}
-                >
-                  Save pin
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  onClick={handleDeletePin}
-                >
-                  Delete pin
-                </button>
-                <Link
-                  className="btn btn-ghost"
-                  to={`/clients/${selectedBlog.clientId}/blog/${selectedBlog.id}`}
-                >
-                  Open review
-                </Link>
-                <button
-                  type="button"
-                  className="btn btn-ghost"
-                  onClick={() => {
-                    setSelectedId(null);
-                    setNotice("");
-                  }}
-                >
-                  Deselect
-                </button>
-              </div>
-            </>
-          ) : (
-            <>
-              <div className="cal-detail-head">
-                <span
-                  className="cal-detail-avatar"
-                  style={{
-                    background: addClient?.color ?? "var(--brand-primary)",
-                  }}
-                  aria-hidden
-                >
-                  {addClient?.initials ?? "+"}
-                </span>
-                <div>
-                  <p className="eyebrow">New pin</p>
-                  <h2>Add to calendar</h2>
-                </div>
-              </div>
+            <DropdownSelect
+              className="field"
+              label="Content status"
+              value={editContentStatus}
+              options={[
+                { value: "to_sort", label: "To sort" },
+                { value: "sorted", label: "Sorted" },
+              ]}
+              onChange={(next) =>
+                setEditContentStatus(next === "sorted" ? "sorted" : "to_sort")
+              }
+            />
 
-              <DropdownSelect
-                className="field cal-client-search"
-                label="Client"
-                labelHidden
-                value={newClientId}
-                searchable
-                searchPlaceholder="Search clients…"
-                placeholder="Search clients…"
-                options={clients.map((client) => ({
-                  value: client.id,
-                  label: client.name,
-                }))}
-                onChange={(next) => {
-                  setNewClientId(next);
-                  if (next) setClientFilter(next);
+            <DropdownSelect
+              className="field"
+              label="Blog status"
+              value={editStatus}
+              options={STATUS_OPTIONS.map((option) => ({
+                value: option.id,
+                label: option.label,
+              }))}
+              onChange={(next) => {
+                const value = next as DraftStatus;
+                setEditStatus(value);
+                if (selectedBlog) {
+                  updateBlog(selectedBlog.id, blogStatusPatch(value));
+                }
+              }}
+            />
+
+            <label className="field">
+              <span className="field-label">Notes</span>
+              <textarea
+                rows={4}
+                value={editNotes}
+                onChange={(event) => setEditNotes(event.target.value)}
+                placeholder="Add notes for this pin…"
+              />
+            </label>
+
+            {notice ? <p className="drive-upload-msg">{notice}</p> : null}
+
+            <div className="form-actions cal-detail-actions">
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={saveEdits}
+              >
+                Save pin
+              </button>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={handleDeletePin}
+              >
+                Delete pin
+              </button>
+              <Link
+                className="btn btn-ghost"
+                to={`/clients/${selectedBlog.clientId}/blog/${selectedBlog.id}`}
+              >
+                Open review
+              </Link>
+            </div>
+          </aside>
+        ) : addingPin ? (
+          <aside className="cal-detail dash-card" aria-label="Pin details">
+            <div className="cal-detail-head">
+              <span
+                className="cal-detail-avatar"
+                style={{
+                  background: addClient?.color ?? "var(--brand-primary)",
                 }}
-              />
-
-              <label className="field">
-                <span className="field-label">Blog title</span>
-                <input
-                  value={newTitle}
-                  onChange={(event) => setNewTitle(event.target.value)}
-                  placeholder="Optional - defaults to client + date"
-                />
-              </label>
-
-              <label className="field">
-                <span className="field-label">Pin date</span>
-                <input
-                  type="date"
-                  value={newDate}
-                  onChange={(event) => setNewDate(event.target.value)}
-                />
-              </label>
-
-              {notice ? <p className="drive-upload-msg">{notice}</p> : null}
-
-              <div className="form-actions cal-detail-actions">
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  onClick={handleAddPin}
-                  disabled={!newClientId || !newDate}
-                >
-                  Add pin
-                </button>
+                aria-hidden
+              >
+                {addClient?.initials ?? "+"}
+              </span>
+              <div>
+                <p className="eyebrow">{addClient?.name ?? "New pin"}</p>
+                <h2>Pin details</h2>
               </div>
+            </div>
 
-              <EmptyState
-                title="Or click a day"
-                body="With a client chosen above, click any day on the calendar to drop a matching color pin there."
+            <DropdownSelect
+              className="field cal-client-search"
+              label="Client"
+              value={newClientId}
+              searchable
+              searchPlaceholder="Search clients…"
+              placeholder="Search clients…"
+              options={clients.map((client) => ({
+                value: client.id,
+                label: client.name,
+              }))}
+              onChange={(next) => {
+                setNewClientId(next);
+                if (next) setClientFilter(next);
+              }}
+            />
+
+            <label className="field">
+              <span className="field-label">Blog name</span>
+              <input
+                value={newTitle}
+                onChange={(event) => setNewTitle(event.target.value)}
+                placeholder="Enter blog name"
               />
-            </>
-          )}
-        </aside>
+            </label>
+
+            <label className="field">
+              <span className="field-label">Pin date</span>
+              <input
+                type="date"
+                value={newDate}
+                onChange={(event) => setNewDate(event.target.value)}
+              />
+            </label>
+
+            <DropdownSelect
+              className="field"
+              label="Content status"
+              value={newContentStatus}
+              options={[
+                { value: "to_sort", label: "To sort" },
+                { value: "sorted", label: "Sorted" },
+              ]}
+              onChange={(next) =>
+                setNewContentStatus(next === "sorted" ? "sorted" : "to_sort")
+              }
+            />
+
+            <DropdownSelect
+              className="field"
+              label="Blog status"
+              value={newStatus}
+              options={STATUS_OPTIONS.map((option) => ({
+                value: option.id,
+                label: option.label,
+              }))}
+              onChange={(next) => setNewStatus(next as DraftStatus)}
+            />
+
+            <label className="field">
+              <span className="field-label">Notes</span>
+              <textarea
+                rows={4}
+                value={newNotes}
+                onChange={(event) => setNewNotes(event.target.value)}
+                placeholder="Add notes for this pin…"
+              />
+            </label>
+
+            {notice ? <p className="drive-upload-msg">{notice}</p> : null}
+
+            <div className="form-actions cal-detail-actions">
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={handleAddPin}
+                disabled={!newClientId || !newDate || !newTitle.trim()}
+              >
+                Save pin
+              </button>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={cancelAddPin}
+              >
+                Cancel
+              </button>
+            </div>
+          </aside>
+        ) : null}
       </div>
     </>
   );

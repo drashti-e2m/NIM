@@ -1,6 +1,20 @@
 import type { BlogPost, DraftStatus } from "../types";
-import { defaultQualityChecks } from "../services/blogGenerate";
+import {
+  approveOutline,
+  buildStructuredOutline,
+  defaultQualityChecks,
+  generateDraftFromOutline,
+  outlineToPlainText,
+  suggestSeo,
+} from "../services/blogGenerate";
 import { readRemovedBlogIds } from "../services/storage";
+import {
+  dedupeSyncedBlogs,
+  ensureCalendarFields,
+  shouldSkipSeed,
+} from "../services/blogCalendarSync";
+import { getClient } from "./clients";
+import { getTone } from "./tones";
 
 /** Start of local day as ISO, offset by whole days from today. */
 export function dayOffsetIso(offsetDays: number, hour = 12): string {
@@ -19,32 +33,95 @@ function stubArticle(input: {
   calendarOffset: number;
   audience?: string;
   keywords?: string[];
-  body?: string;
 }): BlogPost {
   const at = dayOffsetIso(input.calendarOffset);
   const keywords = input.keywords ?? ["content calendar", "blog"];
+  const client = getClient(input.clientId);
+  const tone =
+    getTone("authoritative-plain") ??
+    ({
+      id: "authoritative-plain",
+      name: "Authoritative & Plain-Spoken",
+      status: "draft" as const,
+      summary: "Clear and concrete B2B writing.",
+      traits: [],
+      sample: "",
+    });
+  const audience = input.audience ?? "B2B buyers";
+  const fallbackClient = client ?? {
+    id: input.clientId,
+    name: input.clientId,
+    website: "",
+    industry: "Professional services",
+    contact: "",
+    city: "",
+    summary: "",
+    initials: input.clientId.slice(0, 2).toUpperCase(),
+    color: "#555672",
+    proofPoints: [
+      "Buyers want concrete next steps, not vague transformation language.",
+      "Proof beats promises when decisions are reviewed internally.",
+      "A clear framework helps teams align before they commit.",
+    ],
+    createdAt: at,
+  };
+
+  const outline = approveOutline(
+    buildStructuredOutline({
+      topic: input.title,
+      audience,
+      keywords,
+      client: fallbackClient,
+      notes: input.topic,
+      sectionCount: 6,
+    }),
+  );
+
+  const draft = generateDraftFromOutline({
+    outline,
+    client: fallbackClient,
+    tone,
+    audience,
+    keywords,
+    notes: input.topic,
+    research: `${fallbackClient.name} research notes for “${input.title}”. Focus on buyer constraints, proof, and a practical next step.`,
+    targetWords: 900,
+  });
+
+  const seo = suggestSeo({
+    title: draft.title || input.title,
+    client: fallbackClient,
+    keywords,
+    notes: input.topic,
+  });
+
+  const fullBody = [draft.lede, draft.body, draft.closing, draft.cta]
+    .filter(Boolean)
+    .join("\n\n");
+
   return {
     id: input.id,
     clientId: input.clientId,
-    title: input.title,
-    body:
-      input.body ??
-      `${input.title}\n\nCalendar entry for ${input.clientId}. Scheduled relative to today so past, current, and future months stay populated.`,
-    toneId: "authoritative-plain",
-    toneName: "Authoritative & Plain-Spoken",
+    title: draft.title || input.title,
+    body: fullBody,
+    toneId: tone.id,
+    toneName: tone.name,
     topicMode: "manual",
     topic: input.topic,
-    targetAudience: input.audience ?? "B2B buyers",
-    ideaNotes: "Calendar seed content.",
+    targetAudience: audience,
+    ideaNotes: "Showcase seed article with full draft content.",
     keywords,
     primaryKeyword: keywords[0] ?? "",
     secondaryKeywords: keywords.slice(1),
-    research: "Research pack for calendar planning.",
-    outline: `Outline - ${input.title}`,
-    approvedOutline: null,
-    sections: [],
-    lede: "",
-    closing: "",
+    research: `${fallbackClient.name} · ${input.topic}\n\nKey angles: buyer constraint, practical framework, proof points, clear CTA.`,
+    outline: outlineToPlainText(outline),
+    approvedOutline: {
+      ...outline,
+      cta: draft.cta || outline.cta,
+    },
+    sections: draft.sections,
+    lede: draft.lede,
+    closing: draft.closing,
     versions: [],
     articlePhase:
       input.status === "approved"
@@ -54,17 +131,32 @@ function stubArticle(input: {
           : "draft",
     generationToken: 1,
     outlineDirtyAfterDraft: false,
-    targetWords: 800,
-    seoTitle: input.title.slice(0, 60),
-    seoMeta: `Calendar item: ${input.topic}`,
+    targetWords: 900,
+    seoTitle: seo.seoTitle || input.title.slice(0, 60),
+    seoMeta: seo.seoMeta || `Practical guidance on ${input.topic} from ${fallbackClient.name}.`,
     qualityChecks: defaultQualityChecks(),
     status: input.status,
     createdAt: at,
     updatedAt: at,
     calendarDate: at,
+    calendarPinned: false,
     contentType: "SEO blog post",
     generationStatus: input.calendarOffset <= 0 ? "Completed" : "Scheduled",
   };
+}
+
+/** True when a stored seed is still the old thin calendar placeholder. */
+export function isThinSeedArticle(blog: BlogPost): boolean {
+  if (!(blog.id.startsWith("cal-") || blog.id.startsWith("demo-"))) return false;
+  if ((blog.sections?.length ?? 0) > 0 && (blog.lede?.trim()?.length ?? 0) > 40) {
+    return false;
+  }
+  const body = blog.body ?? "";
+  return (
+    body.length < 500 ||
+    body.includes("Calendar entry for") ||
+    body.includes("Scheduled relative to today")
+  );
 }
 
 /** Stable calendar seed IDs - past, today, and upcoming. */
@@ -171,7 +263,7 @@ export function createCalendarSeedArticles(): BlogPost[] {
       clientId: "wbe",
       title: "Quarterly Touchpoints That Keep Members Engaged",
       topic: "Member re-engagement without a hard sell",
-      status: "draft",
+      status: "in_review",
       calendarOffset: 0,
       audience: "Women-owned suppliers seeking introductions",
       keywords: ["member growth", "buyer introductions", "events"],
@@ -248,7 +340,10 @@ function stripDemoMode(blog: BlogPost): BlogPost {
   return rest;
 }
 
-/** Merge calendar seed articles into stored blogs without wiping user work. */
+/**
+ * Merge calendar seed articles into stored blogs, then dedupe so Library and
+ * Calendar always share one synced BlogPost per piece of work.
+ */
 export function withCalendarSeeds(existing: BlogPost[]): BlogPost[] {
   const removed = new Set(readRemovedBlogIds());
   const seeds = createCalendarSeedArticles().filter(
@@ -258,31 +353,52 @@ export function withCalendarSeeds(existing: BlogPost[]): BlogPost[] {
     .filter(
       (blog) => !OBSOLETE_DEMO_IDS.has(blog.id) && !removed.has(blog.id),
     )
-    .map(stripDemoMode);
+    .map(stripDemoMode)
+    .map(ensureCalendarFields);
   const byId = new Map(merged.map((blog) => [blog.id, blog]));
 
   for (const seed of seeds) {
     if (removed.has(seed.id)) continue;
+    if (shouldSkipSeed(seed, merged)) continue;
+
     if (!byId.has(seed.id)) {
-      merged.unshift(seed);
-      byId.set(seed.id, seed);
+      const next = ensureCalendarFields(seed);
+      merged.unshift(next);
+      byId.set(seed.id, next);
       continue;
     }
+
     const index = merged.findIndex((blog) => blog.id === seed.id);
     if (index < 0) continue;
     const current = merged[index];
-    // Always re-anchor seed schedule to the current local day so
-    // "Due today" / calendar buckets move forward every day.
-    if (!current.body || current.body.length < 200) {
-      merged[index] = seed;
-    } else {
-      merged[index] = {
-        ...current,
-        calendarDate: seed.calendarDate,
-        generationStatus: seed.generationStatus,
-      };
+
+    // Upgrade old thin stubs to full showcase articles (keep date/status edits).
+    if (isThinSeedArticle(current)) {
+      merged[index] = ensureCalendarFields({
+        ...seed,
+        calendarDate: current.calendarPinned
+          ? current.calendarDate || seed.calendarDate
+          : seed.calendarDate,
+        calendarPinned: current.calendarPinned,
+        status: current.status,
+        articlePhase:
+          current.status === "approved"
+            ? "approved"
+            : current.status === "in_review"
+              ? "in_review"
+              : seed.articlePhase,
+      });
+      continue;
     }
+
+    // Never wipe rich user edits. Only re-anchor the schedule when unpinned.
+    if (current.calendarPinned) continue;
+    merged[index] = ensureCalendarFields({
+      ...current,
+      calendarDate: seed.calendarDate,
+      generationStatus: seed.generationStatus,
+    });
   }
 
-  return merged;
+  return dedupeSyncedBlogs(merged);
 }

@@ -15,13 +15,19 @@ import { useDrafts } from "../context/DraftsContext";
 import { useBlogs } from "../context/BlogsContext";
 import { useTones } from "../context/TonesContext";
 import { usePageTitle } from "../usePageTitle";
-import { formatDate, relativeTime, wordCount } from "../format";
-import { statusLabel } from "../labels";
+import {
+  blogContentWordCount,
+  formatDate,
+  relativeTime,
+  wordCount,
+} from "../format";
+import { STATUS_OPTIONS } from "../labels";
 import type { DraftStatus, DriveItem, DriveKind } from "../types";
 import { DemoBadge, EmptyState, FileGlyph, SearchField } from "../components/ui";
 import { FilePreviewBody } from "../components/FilePreviewBody";
 import { DropdownSelect } from "../components/DropdownSelect";
 import { STUDIO_SYNC_EVENT } from "../services/sharedStore";
+import { blogStatusPatch } from "../services/blogStatus";
 
 const kindLabels: Record<DriveKind, string> = {
   folder: "Folder",
@@ -41,6 +47,8 @@ type WorkspaceItem = {
   body: string;
   status: DraftStatus;
   updatedAt: string;
+  /** Calendar / due date ISO when the blog is scheduled. */
+  dueDate?: string;
   href: string;
   toneLabel: string;
   words: number;
@@ -117,7 +125,6 @@ export function WorkspacePage() {
           getTone(blog.toneId)?.name?.trim() ||
           blog.toneName?.trim() ||
           preferredTone;
-        const bodyWords = wordCount(blog.body);
         return {
           id: `blog-${blog.id}`,
           type: "blog" as const,
@@ -125,9 +132,10 @@ export function WorkspacePage() {
           body: blog.body,
           status: blog.status,
           updatedAt: blog.updatedAt,
+          dueDate: blog.calendarDate || blog.updatedAt,
           href: `/clients/${blog.clientId}/blog/${blog.id}`,
           toneLabel: tone,
-          words: bodyWords > 0 ? bodyWords : blog.targetWords || 0,
+          words: blogContentWordCount(blog),
         };
       });
     const draftItems: WorkspaceItem[] = drafts
@@ -139,6 +147,7 @@ export function WorkspacePage() {
         body: draft.body,
         status: draft.status,
         updatedAt: draft.updatedAt,
+        dueDate: draft.updatedAt,
         href: `/library/${draft.id}`,
         toneLabel: preferredTone,
         words: wordCount(draft.body),
@@ -220,7 +229,7 @@ export function WorkspacePage() {
 
   function setItemStatus(item: WorkspaceItem, next: DraftStatus) {
     if (item.type === "blog") {
-      updateBlog(item.id.replace(/^blog-/, ""), { status: next });
+      updateBlog(item.id.replace(/^blog-/, ""), blogStatusPatch(next));
       return;
     }
     updateDraft(item.id.replace(/^draft-/, ""), { status: next });
@@ -378,7 +387,7 @@ export function WorkspacePage() {
           <span>In Review</span>
         </div>
         <div className="workspace-stat">
-          <i className="stat-dot published" aria-hidden />
+          <i className="stat-dot approved" aria-hidden />
           <strong>{statusCounts.approved}</strong>
           <span>Approved</span>
         </div>
@@ -475,9 +484,10 @@ export function WorkspacePage() {
                 value={statusFilter}
                 options={[
                   { value: "all", label: "All" },
-                  { value: "draft", label: "Draft" },
-                  { value: "in_review", label: "In Review" },
-                  { value: "approved", label: "Approved" },
+                  ...STATUS_OPTIONS.map((option) => ({
+                    value: option.id,
+                    label: option.label,
+                  })),
                 ]}
                 onChange={(next) => setDraftParam("status", next)}
               />
@@ -515,6 +525,11 @@ export function WorkspacePage() {
                       <span className={`type-pill type-${item.type}`}>
                         {typeLabel[item.type]}
                       </span>
+                      {item.dueDate ? (
+                        <span className="muted">
+                          Due {formatDate(item.dueDate)}
+                        </span>
+                      ) : null}
                       <span className="muted">
                         Updated {relativeTime(item.updatedAt)}
                       </span>
@@ -527,17 +542,10 @@ export function WorkspacePage() {
                       labelHidden
                       value={item.status}
                       selectClassName={`status-select status-${item.status}`}
-                      options={[
-                        { value: "draft", label: `• ${statusLabel("draft")}` },
-                        {
-                          value: "in_review",
-                          label: `• ${statusLabel("in_review")}`,
-                        },
-                        {
-                          value: "approved",
-                          label: `• ${statusLabel("approved")}`,
-                        },
-                      ]}
+                      options={STATUS_OPTIONS.map((option) => ({
+                        value: option.id,
+                        label: `• ${option.label}`,
+                      }))}
                       onChange={(next) =>
                         setItemStatus(item, next as DraftStatus)
                       }

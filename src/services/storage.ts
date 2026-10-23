@@ -208,7 +208,10 @@ function normalizeBlog(blog: BlogPost): BlogPost {
     seoTitle: blog.seoTitle ?? blog.title.slice(0, 60),
     seoMeta: blog.seoMeta ?? "",
     qualityChecks: Array.isArray(blog.qualityChecks) ? blog.qualityChecks : [],
-    status: blog.status ?? "draft",
+    status:
+      blog.status === "in_review" || blog.status === "approved"
+        ? blog.status
+        : "draft",
     targetAudience: blog.targetAudience ?? "B2B buyers",
     primaryKeyword: blog.primaryKeyword || keywords[0] || "",
     secondaryKeywords: Array.isArray(blog.secondaryKeywords)
@@ -231,6 +234,7 @@ function normalizeBlog(blog: BlogPost): BlogPost {
     topic: blog.topic ?? blog.title,
     targetWords: blog.targetWords ?? 800,
     calendarDate: blog.calendarDate || blog.updatedAt || blog.createdAt,
+    calendarPinned: Boolean(blog.calendarPinned),
     contentType: blog.contentType,
     urlSlug: blog.urlSlug,
     relatedKeywords: Array.isArray(blog.relatedKeywords)

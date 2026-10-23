@@ -1,24 +1,37 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useClients } from "../context/ClientsContext";
-import { useDrafts } from "../context/DraftsContext";
 import { useBlogs } from "../context/BlogsContext";
 import {
   ACTIVITY_CHANGED_EVENT,
   readActivityLog,
   seedActivityFromBlogs,
 } from "../services/activityLog";
+import {
+  activityStatusForBlog,
+  resumeHrefForBlog,
+} from "../services/activityResume";
 import { STUDIO_SYNC_EVENT } from "../services/sharedStore";
 import { usePageTitle } from "../usePageTitle";
 import { formatDate, relativeTime } from "../format";
-import { statusLabel } from "../labels";
 import type { ActivityItem } from "../types";
 import { EmptyState } from "../components/ui";
+
+type ActivityRow = {
+  id: string;
+  blogId: string;
+  clientId: string;
+  title: string;
+  status: string;
+  dueDate?: string;
+  at: string;
+  href: string;
+  statusKey: "draft" | "in_review" | "approved";
+};
 
 export function ActivityPage() {
   usePageTitle("Activity");
   const { getClient } = useClients();
-  const { drafts } = useDrafts();
   const { blogs } = useBlogs();
   const [tick, setTick] = useState(0);
 
@@ -38,33 +51,61 @@ export function ActivityPage() {
     };
   }, []);
 
-  const items = useMemo(() => {
+  const rows = useMemo(() => {
     void tick;
     const log = readActivityLog();
-    const list: ActivityItem[] = [...log];
+    const latestByBlog = new Map<string, ActivityItem>();
+    for (const item of log) {
+      if (!item.blogId) continue;
+      if (!latestByBlog.has(item.blogId)) {
+        latestByBlog.set(item.blogId, item);
+      }
+    }
 
-    // Include recent legacy draft edits that aren't blog articles yet.
-    for (const draft of drafts) {
-      const already = list.some(
-        (item) =>
-          item.kind === "Draft" &&
-          item.title === draft.title &&
-          item.at === draft.updatedAt,
-      );
-      if (already) continue;
-      list.push({
-        id: `draft-${draft.id}-${draft.updatedAt}`,
-        clientId: draft.clientId,
-        kind: "Draft",
-        action: `Status → ${statusLabel(draft.status)}`,
-        title: draft.title,
-        detail: draft.brief.format,
-        at: draft.updatedAt,
+    const live: ActivityRow[] = blogs.map((blog) => {
+      const latest = latestByBlog.get(blog.id) ?? null;
+      const status = activityStatusForBlog(blog, latest);
+      return {
+        id: `blog-${blog.id}`,
+        blogId: blog.id,
+        clientId: blog.clientId,
+        title: blog.title || "Untitled article",
+        status,
+        dueDate: blog.calendarDate || blog.updatedAt,
+        at: blog.updatedAt || blog.createdAt,
+        href: resumeHrefForBlog(blog),
+        statusKey:
+          blog.status === "approved" || blog.status === "in_review"
+            ? blog.status
+            : "draft",
+      };
+    });
+
+    // Keep deleted pins/articles visible so history isn’t lost
+    const deleted: ActivityRow[] = [];
+    for (const item of log) {
+      if (item.action !== "Pin deleted" && item.action !== "Deleted article") {
+        continue;
+      }
+      if (!item.blogId || !item.clientId) continue;
+      if (blogs.some((blog) => blog.id === item.blogId)) continue;
+      deleted.push({
+        id: item.id,
+        blogId: item.blogId,
+        clientId: item.clientId,
+        title: item.title,
+        status: item.action,
+        dueDate: item.dueDate,
+        at: item.at,
+        href: `/clients/${item.clientId}?tab=drafts`,
+        statusKey: "draft",
       });
     }
 
-    return list.sort((a, b) => b.at.localeCompare(a.at)).slice(0, 60);
-  }, [blogs, drafts, tick]);
+    return [...live, ...deleted]
+      .sort((a, b) => b.at.localeCompare(a.at))
+      .slice(0, 80);
+  }, [blogs, tick]);
 
   return (
     <>
@@ -73,66 +114,71 @@ export function ActivityPage() {
           <p className="eyebrow">Operations</p>
           <h1>Activity</h1>
           <p className="lede">
-            History of recent work on blogs - creates, outline approvals, drafts,
-            edits, cover images, review, and status changes.
+            Blogs and calendar pins in one place — title, client, and status.
+            Click a row to resume where you left off.
           </p>
         </div>
       </header>
 
-      {items.length === 0 ? (
+      {rows.length === 0 ? (
         <EmptyState
           title="No activity yet"
-          body="Generate or edit a blog for a client and the work will show up here."
+          body="Start a blog, leave mid-way, or place a calendar pin — it will show up here so you can continue later."
         />
       ) : (
         <ul className="activity-list">
-          {items.map((item) => {
-            const client = item.clientId ? getClient(item.clientId) : undefined;
-            const blogHref =
-              item.kind === "Blog" && client && item.blogId
-                ? item.action === "Deleted article"
-                  ? `/clients/${client.id}?tab=drafts`
-                  : `/clients/${client.id}/blog/${item.blogId}`
-                : null;
-            const editHref =
-              item.kind === "Blog" &&
-              client &&
-              item.blogId &&
-              item.action !== "Deleted article"
-                ? `/clients/${client.id}/generate?article=${item.blogId}`
-                : null;
-
+          {rows.map((row) => {
+            const client = getClient(row.clientId);
             return (
-              <li key={item.id} className="activity-row">
-                <span className="activity-kind">{item.kind}</span>
-                <div className="activity-copy">
+              <li key={row.id} className="activity-row">
+                <Link to={row.href} className="activity-copy activity-resume">
                   <div className="activity-title-row">
-                    {blogHref ? (
-                      <Link to={blogHref}>
-                        <strong>{item.title}</strong>
-                      </Link>
-                    ) : (
-                      <strong>{item.title}</strong>
-                    )}
-                    <span className="activity-action">{item.action}</span>
+                    <strong className="activity-blog-title">{row.title}</strong>
+                    <span className={`activity-action status-${row.statusKey}`}>
+                      {row.status}
+                    </span>
                   </div>
-                  <span className="muted">
+                  <div className="activity-meta">
                     {client ? (
-                      <Link to={`/clients/${client.id}`}>{client.name}</Link>
+                      <span className="activity-client">
+                        <span
+                          className="activity-client-logo"
+                          style={{ background: client.color }}
+                          aria-hidden
+                        >
+                          {client.initials}
+                        </span>
+                        <span className="activity-client-name">{client.name}</span>
+                      </span>
                     ) : (
-                      "Workspace"
+                      <span className="activity-client muted">
+                        <span className="activity-client-logo" aria-hidden>
+                          —
+                        </span>
+                        <span className="activity-client-name">Workspace</span>
+                      </span>
                     )}
-                    {item.detail ? <> · {item.detail}</> : null}
-                    {editHref ? (
-                      <>
-                        {" · "}
-                        <Link to={editHref}>Open in editor</Link>
-                      </>
-                    ) : null}
-                  </span>
-                </div>
-                <time className="muted activity-time" dateTime={item.at} title={formatDate(item.at)}>
-                  {relativeTime(item.at)}
+                    <span className="activity-due muted">
+                      Due{" "}
+                      {row.dueDate ? (
+                        <time dateTime={row.dueDate}>
+                          {formatDate(row.dueDate)}
+                        </time>
+                      ) : (
+                        "—"
+                      )}
+                    </span>
+                    <span className="activity-resume-hint muted">
+                      Click to resume
+                    </span>
+                  </div>
+                </Link>
+                <time
+                  className="muted activity-time"
+                  dateTime={row.at}
+                  title={formatDate(row.at)}
+                >
+                  {relativeTime(row.at)}
                 </time>
               </li>
             );

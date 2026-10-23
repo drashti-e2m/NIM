@@ -4,7 +4,7 @@ import { useClients } from "../context/ClientsContext";
 import { useBlogs } from "../context/BlogsContext";
 import { usePageTitle } from "../usePageTitle";
 import { wordCount } from "../format";
-import { statusLabel } from "../labels";
+import { STATUS_OPTIONS } from "../labels";
 import {
   hydrateSectionsFromBody,
   sectionsToBody,
@@ -12,6 +12,7 @@ import {
 import type { DraftStatus } from "../types";
 import { EmptyState, StatusBadge } from "../components/ui";
 import { DropdownSelect } from "../components/DropdownSelect";
+import { blogStatusPatch } from "../services/blogStatus";
 
 type Align = "left" | "center" | "right" | "justify";
 type SaveState = "idle" | "saving" | "saved" | "error";
@@ -20,7 +21,7 @@ export function BlogEditorPage() {
   const { clientId = "", blogId = "" } = useParams();
   const navigate = useNavigate();
   const { getClient, setLastClientId } = useClients();
-  const { getBlog, saveArticleContent } = useBlogs();
+  const { getBlog, saveArticleContent, updateBlog } = useBlogs();
   const client = getClient(clientId);
   const blog = getBlog(blogId);
   const matched = blog && blog.clientId === clientId ? blog : undefined;
@@ -60,6 +61,12 @@ export function BlogEditorPage() {
     dirtyRef.current = false;
     setSaveState("idle");
   }, [matched?.id, matched?.generationToken]);
+
+  // Keep editor status in sync when status changes elsewhere (Calendar, Library, Review).
+  useEffect(() => {
+    if (!matched) return;
+    setStatus(matched.status);
+  }, [matched?.status, matched?.id]);
 
   if (!client || !matched) {
     return (
@@ -291,10 +298,6 @@ export function BlogEditorPage() {
             <strong>{activeClient.name}</strong>
           </div>
           <div className="meta-block">
-            <span>Phase</span>
-            <strong>{activeBlog.articlePhase}</strong>
-          </div>
-          <div className="meta-block">
             <span>Outline</span>
             <strong>
               {activeBlog.approvedOutline?.approved
@@ -304,23 +307,19 @@ export function BlogEditorPage() {
           </div>
           <DropdownSelect
             className="field"
-            label="Approval status"
+            label="Status"
             value={status}
-            options={[
-              { value: "draft", label: "Draft" },
-              { value: "in_review", label: "In Review" },
-              { value: "approved", label: "Approved" },
-            ]}
+            options={STATUS_OPTIONS.map((option) => ({
+              value: option.id,
+              label: option.label,
+            }))}
             onChange={(next) => {
-              setStatus(next as DraftStatus);
-              dirtyRef.current = true;
-              setSaveState("idle");
+              const value = next as DraftStatus;
+              setStatus(value);
+              updateBlog(activeBlog.id, blogStatusPatch(value));
+              setNotice(`Status updated to ${value.replace("_", " ")}.`);
             }}
           />
-          <div className="meta-block">
-            <span>Status label</span>
-            <strong>{statusLabel(status)}</strong>
-          </div>
           <div className="meta-block">
             <span>Versions</span>
             <strong>{activeBlog.versions?.length ?? 0} snapshots</strong>

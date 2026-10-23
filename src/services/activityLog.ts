@@ -2,6 +2,7 @@ import type { ActivityItem, BlogPost } from "../types";
 import { ACTIVITY_KEY } from "./storageKeys";
 import { scheduleSharedPush } from "./sharedStore";
 import { statusLabel } from "../labels";
+import { toDateInputValue } from "./calendar";
 
 const MAX_EVENTS = 120;
 export const ACTIVITY_CHANGED_EVENT = "nim-activity-changed";
@@ -29,6 +30,27 @@ function isActivityItem(value: unknown): value is ActivityItem {
   );
 }
 
+function dueFromBlog(blog: BlogPost): string | undefined {
+  const raw = blog.calendarDate || blog.updatedAt || blog.createdAt;
+  if (!raw) return undefined;
+  const date = new Date(raw);
+  return Number.isNaN(date.getTime()) ? undefined : raw;
+}
+
+function isCalendarPinBlog(blog: BlogPost): boolean {
+  const notes = blog.ideaNotes?.toLowerCase() ?? "";
+  if (notes.includes("created from content calendar pin")) return true;
+  if (blog.calendarPinned && blog.generationStatus === "Scheduled") return true;
+  if (blog.id.startsWith("cal-")) return true;
+  return false;
+}
+
+function formatDay(iso?: string): string {
+  if (!iso) return "—";
+  const key = toDateInputValue(iso);
+  return key || "—";
+}
+
 export function readActivityLog(): ActivityItem[] {
   try {
     const raw = localStorage.getItem(ACTIVITY_KEY);
@@ -39,7 +61,11 @@ export function readActivityLog(): ActivityItem[] {
       .filter(isActivityItem)
       .map((item) => ({
         ...item,
-        action: typeof item.action === "string" && item.action ? item.action : item.detail,
+        action:
+          typeof item.action === "string" && item.action
+            ? item.action
+            : item.detail,
+        dueDate: typeof item.dueDate === "string" ? item.dueDate : undefined,
       }))
       .sort((a, b) => b.at.localeCompare(a.at));
   } catch {
@@ -62,80 +88,102 @@ export function logActivity(
     title: input.title,
     detail: input.detail,
     at: input.at ?? new Date().toISOString(),
+    dueDate: input.dueDate,
   };
   const next = [event, ...readActivityLog()].slice(0, MAX_EVENTS);
   persist(next);
   return event;
 }
 
-/** One-time backfill so Activity isn't empty for existing blogs. */
+/** Current status label for a blog — Draft / In Review / Approved (or phase). */
+export function activityLabelForBlog(blog: BlogPost): string {
+  if (
+    blog.articlePhase === "outline" ||
+    blog.articlePhase === "outline_approved" ||
+    blog.articlePhase === "review_outdated"
+  ) {
+    return actionFromPhase(blog.articlePhase, blog.status);
+  }
+  if (blog.research?.trim() && !blog.body?.trim() && blog.status === "draft") {
+    return "Researched";
+  }
+  return statusLabel(blog.status);
+}
+
+function isPlaceholderActivityId(id: string): boolean {
+  return (
+    id.startsWith("seed-") ||
+    id.startsWith("state-") ||
+    id.startsWith("draft-")
+  );
+}
+
+/**
+ * Backfill Activity for blogs that have never been logged, without wiping
+ * real event history (pin moves, deletes, edits, etc.).
+ */
 export function seedActivityFromBlogs(blogs: BlogPost[]): void {
-  if (readActivityLog().length > 0) return;
-  const seeded: ActivityItem[] = [];
+  const raw = readActivityLog();
+  // Drop legacy seed/state placeholders only; keep every real event.
+  const existing = raw.filter((item) => !isPlaceholderActivityId(item.id));
+  const covered = new Set(
+    existing.map((item) => item.blogId).filter(Boolean) as string[],
+  );
+
+  const backfill: ActivityItem[] = [];
   for (const blog of blogs) {
-    seeded.push({
-      id: `seed-created-${blog.id}`,
+    if (covered.has(blog.id)) continue;
+    backfill.push({
+      id: `act-backfill-${blog.id}`,
       clientId: blog.clientId,
       blogId: blog.id,
       kind: "Blog",
-      action: "Created article",
-      title: blog.title,
+      action: isCalendarPinBlog(blog)
+        ? "Pin created"
+        : activityLabelForBlog(blog),
+      title: blog.title || "Untitled article",
       detail: phaseDetail(blog),
-      at: blog.createdAt,
+      at: blog.updatedAt || blog.createdAt,
+      dueDate: dueFromBlog(blog),
     });
-    for (const version of [...(blog.versions ?? [])].reverse()) {
-      seeded.push({
-        id: `seed-ver-${version.id}`,
-        clientId: blog.clientId,
-        blogId: blog.id,
-        kind: "Blog",
-        action: version.label || "Saved version",
-        title: version.title || blog.title,
-        detail: phaseDetail(blog),
-        at: version.createdAt,
-      });
-    }
-    if (blog.updatedAt !== blog.createdAt) {
-      seeded.push({
-        id: `seed-updated-${blog.id}`,
-        clientId: blog.clientId,
-        blogId: blog.id,
-        kind: "Blog",
-        action: actionFromPhase(blog.articlePhase, blog.status),
-        title: blog.title,
-        detail: phaseDetail(blog),
-        at: blog.updatedAt,
-      });
-    }
   }
-  if (seeded.length === 0) return;
-  persist(seeded.sort((a, b) => b.at.localeCompare(a.at)).slice(0, MAX_EVENTS));
+
+  const cleanedPlaceholders = raw.length !== existing.length;
+  if (backfill.length === 0 && !cleanedPlaceholders) return;
+  persist(
+    [...backfill, ...existing]
+      .sort((a, b) => b.at.localeCompare(a.at))
+      .slice(0, MAX_EVENTS),
+  );
 }
 
 function phaseDetail(blog: BlogPost): string {
   const words = blog.targetWords ? `${blog.targetWords} words` : "";
   const tone = blog.toneName?.trim() || "";
   const status = statusLabel(blog.status);
-  return [words, tone || status].filter(Boolean).join(" · ");
+  const due = blog.calendarDate
+    ? `Due ${formatDay(blog.calendarDate)}`
+    : "";
+  return [words, tone || status, due].filter(Boolean).join(" · ");
 }
 
 function actionFromPhase(
   phase: BlogPost["articlePhase"],
   status: BlogPost["status"],
 ): string {
-  if (status === "approved") return "Approved article";
-  if (status === "in_review") return "Sent to review";
+  if (status === "approved") return "Approved";
+  if (status === "in_review") return "In Review";
   switch (phase) {
     case "outline":
       return "Worked on outline";
     case "outline_approved":
       return "Approved outline";
     case "draft":
-      return "Updated draft";
+      return "Draft";
     case "in_review":
-      return "Sent to review";
+      return "In Review";
     case "approved":
-      return "Approved article";
+      return "Approved";
     case "review_outdated":
       return "Edited after review";
     default:
@@ -143,108 +191,147 @@ function actionFromPhase(
   }
 }
 
-export function describeBlogUpdate(
+/** All notable changes between two blog versions (can be multiple). */
+export function describeBlogUpdates(
   prev: BlogPost,
   next: BlogPost,
   options?: { snapshot?: boolean; snapshotLabel?: string },
-): string | null {
+): string[] {
+  const actions: string[] = [];
+
+  const prevDay = formatDay(prev.calendarDate || prev.updatedAt);
+  const nextDay = formatDay(next.calendarDate || next.updatedAt);
+  if (prev.calendarDate !== next.calendarDate) {
+    if (!prev.calendarDate && next.calendarDate) {
+      actions.push("Pin created");
+    } else if (prevDay !== nextDay) {
+      actions.push(`Pin moved · ${prevDay} → ${nextDay}`);
+    } else {
+      actions.push("Pin updated");
+    }
+  }
+
   if (prev.articlePhase !== next.articlePhase) {
     switch (next.articlePhase) {
       case "outline":
-        return "Started outline";
+        actions.push("Started outline");
+        break;
       case "outline_approved":
-        return "Approved outline";
+        actions.push("Approved outline");
+        break;
       case "draft":
-        return prev.articlePhase === "outline_approved" ||
-          prev.articlePhase === "outline"
-          ? "Generated draft"
-          : "Updated draft";
+        actions.push(
+          prev.articlePhase === "outline_approved" ||
+            prev.articlePhase === "outline"
+            ? "Generated draft"
+            : "Updated draft",
+        );
+        break;
       case "in_review":
-        return "Sent to review";
+        actions.push("Sent to review");
+        break;
       case "approved":
-        return "Approved article";
+        actions.push("Approved");
+        break;
       case "review_outdated":
-        return "Edited after review";
+        actions.push("Edited after review");
+        break;
       default:
-        return "Updated article";
+        actions.push("Updated article");
     }
   }
 
   if (prev.status !== next.status) {
-    return `Status → ${statusLabel(next.status)}`;
+    actions.push(`Status → ${statusLabel(next.status)}`);
   }
 
   if (prev.featuredImageId !== next.featuredImageId) {
-    return next.featuredImageId ? "Added cover image" : "Removed cover image";
+    actions.push(
+      next.featuredImageId ? "Added cover image" : "Removed cover image",
+    );
   }
 
   if (options?.snapshot) {
-    return options.snapshotLabel?.trim() || "Saved draft version";
+    actions.push(options.snapshotLabel?.trim() || "Saved draft version");
   }
 
   const bodyChanged =
     prev.body !== next.body ||
-    JSON.stringify(prev.sections ?? []) !== JSON.stringify(next.sections ?? []) ||
+    JSON.stringify(prev.sections ?? []) !==
+      JSON.stringify(next.sections ?? []) ||
     prev.lede !== next.lede ||
     prev.closing !== next.closing;
 
   if (bodyChanged) {
-    return "Edited draft";
+    actions.push("Edited draft");
   }
 
   if (
     prev.approvedOutline?.approved !== next.approvedOutline?.approved &&
     next.approvedOutline?.approved
   ) {
-    return "Approved outline";
-  }
-
-  if (
+    actions.push("Approved outline");
+  } else if (
     prev.outline !== next.outline ||
-    JSON.stringify(prev.approvedOutline) !== JSON.stringify(next.approvedOutline)
+    JSON.stringify(prev.approvedOutline) !==
+      JSON.stringify(next.approvedOutline)
   ) {
-    return "Updated outline";
+    actions.push("Updated outline");
   }
 
   if (prev.research !== next.research && next.research.trim()) {
-    return "Updated research";
+    actions.push("Updated research");
   }
 
   if (
     prev.keywords.join("|") !== next.keywords.join("|") ||
     prev.primaryKeyword !== next.primaryKeyword
   ) {
-    return "Updated keywords";
+    actions.push("Updated keywords");
   }
 
   if (prev.topic !== next.topic && next.topic.trim()) {
-    return "Updated topic";
+    actions.push("Updated topic");
   }
 
   if (prev.toneId !== next.toneId || prev.toneName !== next.toneName) {
-    return `Tone → ${next.toneName || "updated"}`;
+    actions.push(`Tone → ${next.toneName || "updated"}`);
   }
 
-  if (prev.calendarDate !== next.calendarDate) {
-    return "Scheduled on calendar";
+  if (prev.title !== next.title && next.title.trim()) {
+    if (isCalendarPinBlog(next) || isCalendarPinBlog(prev)) {
+      actions.push("Pin renamed");
+    } else {
+      actions.push("Renamed article");
+    }
   }
 
-  // Ignore title-only typing and token-only / silent sync patches
-  return null;
+  // De-dupe while preserving order
+  return [...new Set(actions)];
+}
+
+/** @deprecated use describeBlogUpdates — kept for callers expecting one label */
+export function describeBlogUpdate(
+  prev: BlogPost,
+  next: BlogPost,
+  options?: { snapshot?: boolean; snapshotLabel?: string },
+): string | null {
+  return describeBlogUpdates(prev, next, options)[0] ?? null;
 }
 
 export function logBlogCreated(blog: BlogPost): void {
+  const pin = isCalendarPinBlog(blog);
   logActivity({
     clientId: blog.clientId,
     blogId: blog.id,
     kind: "Blog",
-    action:
-      blog.articlePhase === "outline" || !blog.body
-        ? "Created article"
-        : "Created article",
+    action: pin ? "Pin created" : "Created article",
     title: blog.title || "Untitled article",
-    detail: phaseDetail(blog),
+    detail: pin
+      ? `Calendar pin · Due ${formatDay(blog.calendarDate)}`
+      : phaseDetail(blog),
     at: blog.createdAt,
+    dueDate: dueFromBlog(blog),
   });
 }
 
@@ -253,26 +340,36 @@ export function logBlogUpdated(
   next: BlogPost,
   options?: { snapshot?: boolean; snapshotLabel?: string },
 ): void {
-  const action = describeBlogUpdate(prev, next, options);
-  if (!action) return;
-  logActivity({
-    clientId: next.clientId,
-    blogId: next.id,
-    kind: "Blog",
-    action,
-    title: next.title || prev.title || "Untitled article",
-    detail: phaseDetail(next),
-    at: next.updatedAt,
-  });
+  const actions = describeBlogUpdates(prev, next, options);
+  if (actions.length === 0) return;
+  const at = next.updatedAt;
+  const dueDate = dueFromBlog(next);
+  const title = next.title || prev.title || "Untitled article";
+  for (const action of actions) {
+    logActivity({
+      clientId: next.clientId,
+      blogId: next.id,
+      kind: "Blog",
+      action,
+      title,
+      detail: phaseDetail(next),
+      at,
+      dueDate,
+    });
+  }
 }
 
 export function logBlogDeleted(blog: BlogPost): void {
+  const pin = isCalendarPinBlog(blog);
   logActivity({
     clientId: blog.clientId,
     blogId: blog.id,
     kind: "Blog",
-    action: "Deleted article",
+    action: pin ? "Pin deleted" : "Deleted article",
     title: blog.title || "Untitled article",
-    detail: phaseDetail(blog),
+    detail: pin
+      ? `Removed from calendar · was due ${formatDay(blog.calendarDate)}`
+      : phaseDetail(blog),
+    dueDate: dueFromBlog(blog),
   });
 }
